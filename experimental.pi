@@ -1,0 +1,44 @@
+import "Std/List"
+
+{-
+def map (key value) = (cons [key value] nil)
+def compare (key1 val1) = (<= key1 val1)
+def reduce (key values) = (cons [key values] nil)
+-}
+
+type Pair = [Int Int]
+
+{- Can send [A,B] in question, plus map, then the return channel
+def worker [#X pair:X f:/[X /X] return:^X] = return!(f pair)
+
+run worker![#Type.. (car input) map result]
+-}
+
+{- Working FOR loop implementation -}
+def for [i:Int j:Int p:/[Int Sig] c:/[]] = 
+	if (<= i j) then 
+		(new d:^[]
+		(p![i (rchan d)]
+		| d?[] = for![(+ i i) j p c]))
+	else c![]
+
+def worker![a b] = printi!a
+
+{- Experimental loop to summon the workers -}
+def iterateAndSummon [#X input:(List [Int X] worker:/[Int Sig] finished:/[]] =
+	if (null input) then 
+		finished![]
+	else (new d:^[]
+		(worker![(car input) (rchan d)]
+		| d?[] = for![(cdr input) worker finished]))
+
+{- maybe add some way to print the tuple ... generic tho -}
+def mapReduce [#X input:(List [Int X])] = 
+	if (null input) then print!"NULL list!"
+	else (new d:^[] 
+		(for![1 5 \[x:Int c:Sig] = (printi!x | c![]) (rchan d)] 
+		| d?[] = ( print!"Done"
+			 | iterateAndSummon![] 
+				)))       
+
+run mapReduce![(cons > [1 2] [2 4] nil)]

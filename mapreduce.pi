@@ -1,0 +1,29 @@
+import "Std/List" 
+def map (key:Int value:Int):(List [Int Int]) = (cons [key value] nil)
+def reduce (key:Int values:(List Int)):(List [Int (List Int)]) = (cons [key values] nil)
+def compare (key1:Int val1:Int):Bool = (<= key1 val1)
+
+{- Delegate function call to a worker -}
+{- def worker [f pair:[key value] c:^[key value]] = c!(f pair) -}
+
+def for(i:Int j:Int p:/[Int Sig]):[] = 
+	if (<= i j) then
+		((p i);
+		 (for (+ i 1) j p)
+	        )
+	else []
+
+{- (new c:^[key value] 	 (worker![map (car input) (rchan c)]  | c?[key_ val_] = print!key_ | print!val_)) -}
+                                                                                                           
+
+def mapReduce [map compare reduce input] =
+	(for 1 5 \[x:Int c:Sig] = (printi!x | c![]))
+
+
+{-val input = (cons > [1 1] [2 2] nil)
+-}
+
+val input = (cons 6 (cons 7 ( cons 8 nil)))
+run print!(car (car input)
+ {-(mapReduce(map compare reduce input); () -}
+)
