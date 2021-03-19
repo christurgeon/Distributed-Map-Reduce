@@ -1,44 +1,45 @@
 import "Std/List"
 
-{-
-def map (key value) = (cons [key value] nil)
-def compare (key1 val1) = (<= key1 val1)
-def reduce (key values) = (cons [key values] nil)
--}
+{- Supplied map, idk how to use it without hardcoding types FOR NOW -}
+def map (key:Int value:Int):(List [Int Int]) = (cons [key value] nil)
 
-type Pair = [Int Int]
+{- def compare (key1 val1) = (<= key1 val1)
+def reduce (key values) = (cons [key values] nil) -}
 
-{- Can send [A,B] in question, plus map, then the return channel
-def worker [#X pair:X f:/[X /X] return:^X] = return!(f pair)
-
-run worker![#Type.. (car input) map result]
--}
 
 {- Working FOR loop implementation -}
 def for [i:Int j:Int p:/[Int Sig] c:/[]] = 
 	if (<= i j) then 
 		(new d:^[]
 		(p![i (rchan d)]
-		| d?[] = for![(+ i i) j p c]))
+		| d?[] = for![(+ i 1) j p c]))
 	else c![]
 
-def worker![a b] = printi!a
+
+def worker[#X work:[Int X] map done:/[]] = 
+	(new br:^Bool (==![0 0 (rchan br)] 
+		      | br?b = if b then (map work) 
+					else done![]))
+
 
 {- Experimental loop to summon the workers -}
-def iterateAndSummon [#X input:(List [Int X] worker:/[Int Sig] finished:/[]] =
+def iterateAndSummon [#X input:(List [Int X]) map done:/[]] =
 	if (null input) then 
-		finished![]
+		done![]
 	else (new d:^[]
+		{- Send to worker actor then recurse -}
 		(worker![(car input) (rchan d)]
-		| d?[] = for![(cdr input) worker finished]))
+		| d?[] = iterateAndSummon![(cdr input) done]))
+ 
 
-{- maybe add some way to print the tuple ... generic tho -}
-def mapReduce [#X input:(List [Int X])] = 
+def mapReduce [#X map input:(List [Int X])] = 
 	if (null input) then print!"NULL list!"
 	else (new d:^[] 
-		(for![1 5 \[x:Int c:Sig] = (printi!x | c![]) (rchan d)] 
-		| d?[] = ( print!"Done"
-			 | iterateAndSummon![] 
+		(for![1 5 \[x:Int c:Sig] = (printi!x | c![]) (rchan d)] {- FOR LOOP FROM CLASS, JUST FOR EXAMPLE-}
+		| d?[] = ( print!"For Loop Done"
+			 | iterateAndSummon![input map (rchan d)]       {- NOW TRYING TO CALL THIS GUY -}
+			 | d?[] = print!"Done 2"
 				)))       
 
-run mapReduce![(cons > [1 2] [2 4] nil)]
+
+run mapReduce![map (cons > [1 2] [2 4] nil)]
