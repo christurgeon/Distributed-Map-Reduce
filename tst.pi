@@ -1,0 +1,9 @@
+type Response = /[Int /Int]
+
+def call [l:Int f:Response] = printi!(f l)
+
+def add (x:Int):Int = (+ x 2)
+
+run call![1 add]
+
+

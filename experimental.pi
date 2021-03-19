@@ -1,11 +1,14 @@
 import "Std/List"
 
 {- Supplied map, idk how to use it without hardcoding types FOR NOW -}
-def map (key:Int value:Int):(List [Int Int]) = (cons [key value] nil)
+def map (#X key:Int value:X):(List [Int X]) = (cons [key value] nil)
 
-{- def compare (key1 val1) = (<= key1 val1)
-def reduce (key values) = (cons [key values] nil) -}
+{- 
+def compare (key1 val1) = (<= key1 val1)
+def reduce (key values) = (cons [key values] nil) 
+-} 
 
+type MapFunction = /[#X Int X /(List [Int X])]
 
 {- Working FOR loop implementation -}
 def for [i:Int j:Int p:/[Int Sig] c:/[]] = 
@@ -16,29 +19,29 @@ def for [i:Int j:Int p:/[Int Sig] c:/[]] =
 	else c![]
 
 
-def worker[#X work:[Int X] map done:/[]] = 
+def worker[#X work:[Int X] map:MapFunction done:/[]] = 
 	(new br:^Bool (==![0 0 (rchan br)] 
-		      | br?b = if b then (map work) 
+		      | br?b = if b then (done![] | print!"Bruh") {-(map work)-} 
 					else done![]))
 
 
 {- Experimental loop to summon the workers -}
-def iterateAndSummon [#X input:(List [Int X]) map done:/[]] =
+def iterateAndSummon [#X input:(List [Int X]) map:MapFunction done:/[]] =
 	if (null input) then 
 		done![]
 	else (new d:^[]
 		{- Send to worker actor then recurse -}
-		(worker![(car input) (rchan d)]
-		| d?[] = iterateAndSummon![(cdr input) done]))
+		(worker![(car input) map (rchan d)]
+		| d?[] = iterateAndSummon![(cdr input) map done]))
  
 
-def mapReduce [#X map input:(List [Int X])] = 
+def mapReduce [#X map:MapFunction input:(List [Int X])] = 
 	if (null input) then print!"NULL list!"
 	else (new d:^[] 
 		(for![1 5 \[x:Int c:Sig] = (printi!x | c![]) (rchan d)] {- FOR LOOP FROM CLASS, JUST FOR EXAMPLE-}
 		| d?[] = ( print!"For Loop Done"
 			 | iterateAndSummon![input map (rchan d)]       {- NOW TRYING TO CALL THIS GUY -}
-			 | d?[] = print!"Done 2"
+			 | d?[] = print!"Finished..."
 				)))       
 
 
