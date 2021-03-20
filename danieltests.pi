@@ -1,12 +1,12 @@
 import "Std/List" 
 type Response = /[/Int Int Int]
 
-def call [l:Int r:Int f:Response] = printi!(l r f)
+def call [f:Response l:Int r:Int] = printi!(l r f)
 
 def add (x:Int y:Int):Int = (+ x y)
 def sub (x:Int y:Int):Int = (- x y)
 
-run call![5 3 add]
-run call![3 5 add]
-run call![5 3 sub]
-run call![3 5 sub]
+run call![add 5 3]
+run call![add 3 5]
+run call![sub 5 3]
+run call![sub 3 5]
