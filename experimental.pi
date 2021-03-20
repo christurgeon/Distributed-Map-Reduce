@@ -18,11 +18,14 @@ def for [i:Int j:Int p:/[Int Sig] c:/[]] =
 		| d?[] = for![(+ i 1) j p c]))
 	else c![]
 
+
 {- 
 Takes in a tuple of key,value, a map function to apply, and a channel to send result
 -}
 def worker[#X [a:Int b:X] map:MapFunction done:/(List [Int X])] = 
 	done!(map a b)
+
+
 
 {-
 Aggregator function to reas in `size` number of pairs from the `results` channel
@@ -33,6 +36,7 @@ def resultsAggregator [#X current:Int size:Int results:^[(List [Int X])] list:(L
 		results?r = resultsAggregator![(+ 1 current) size results (cons r list) res]
 	else 
 		res![list]
+
 
 
 {- 
@@ -47,6 +51,7 @@ def iterateAndSummon [#X input:(List [Int X]) map:MapFunction done:/[]] =
 		(worker![(car input) map (rchan d)]
 		| d?result = iterateAndSummon![(cdr input) map done]))
  
+
 
 {- 
 Accepts a list and a starting counter value and loops through the list 
