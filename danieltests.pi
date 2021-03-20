@@ -1,7 +1,7 @@
 import "Std/List" 
-type Response = /[Int Int /Int]
+type Response = /[/Int Int Int]
 
-def call [l:Int r:Int f:Response] = printi!(f l r)
+def call [l:Int r:Int f:Response] = printi!(l r f)
 
 def add (x:Int y:Int):Int = (+ x y)
 def sub (x:Int y:Int):Int = (- x y)
