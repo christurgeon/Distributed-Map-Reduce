@@ -8,7 +8,8 @@ def compare (key1 val1) = (<= key1 val1)
 def reduce (key values) = (cons [key values] nil) 
 -} 
 
-type MapFunction = /[#X Int X /(List [Int X])]
+type MapFunction = /[#X Int X /(List [Int X])]  
+type ResultsFeeder = /[#X (List [Int X])]
 
 {- Working FOR loop implementation -}
 def for [i:Int j:Int p:/[Int Sig] c:/[]] = 
@@ -22,8 +23,7 @@ def for [i:Int j:Int p:/[Int Sig] c:/[]] =
 {- 
 Takes in a tuple of key,value, a map function to apply, and a channel to send result
 -}
-def worker[#X [a:Int b:X] map:MapFunction done:/(List [Int X])] = 
-	done!(map a b)
+def worker[#X [a:Int b:X] map:MapFunction done:ResultsFeeder] = done![(map a b)]
 
 
 
@@ -31,25 +31,22 @@ def worker[#X [a:Int b:X] map:MapFunction done:/(List [Int X])] =
 Aggregator function to reas in `size` number of pairs from the `results` channel
 The pairs come from worker function sending its result after applying map
 -}
-def resultsAggregator [#X current:Int size:Int results:^[(List [Int X])] list:(List (List [Int X])) res:/[(List (List [Int X]))]] = 
-	if (<= current (- size 1)) then 
-		results?r = resultsAggregator![(+ 1 current) size results (cons r list) res]
+def resultsAggregator [#X current:Int len:Int results:^[#X (List [Int X])] list:(List (List [Int X])) res:/[#X (List (List [Int X]))]] = 
+	if (<= current (- len 1)) then 
+		results?r = resultsAggregator![(+ 1 current) len results (cons > (cons > [2 2] [3 3] nil) nil) res] {-(cons r list) res] -}
 	else 
 		res![list]
-
 
 
 {- 
 Iterates through the input and summons workers to compute work unit.
 It sends Sig when complete
 -}
-def iterateAndSummon [#X input:(List [Int X]) map:MapFunction done:/[]] =
+def iterateAndSummon [#X input:(List [Int X]) map:MapFunction reschannel:ResultsFeeder done:/[]] =
 	if (null input) then 
 		done![]
-	else (new d:^(List [Int X])
-		{- Send to worker actor then recurse -}
-		(worker![(car input) map (rchan d)]
-		| d?result = iterateAndSummon![(cdr input) map done]))
+	else (worker![(car input) map reschannel]
+	     | iterateAndSummon![(cdr input) map reschannel done])
  
 
 
@@ -60,7 +57,7 @@ and increasing counter by that amoung
 def size [#X input:(List [Int X]) counter:Int total:/Int] =
 	if (null input) then
 		total!counter
-	else size![(car input) (+ counter 1) total]
+	else size![(cdr input) (+ counter 1) total]
 
 
 {-
@@ -70,18 +67,15 @@ def mapReduce [#X map:MapFunction input:(List [Int X])] =
 	if (null input) then 
 		print!"NULL list!"
 	else (new d:^[] 
-              new length:^Int
               new reschannel:^[#X (List [Int X])]
-	      new finalresult:^[#X (List [Int X])]
-	      (size![input 1 (rchan length)]
-              | length?size = 
+	      new finalresult:^[#X (List (List [Int X]))]
+	      new length:^Int 
+              (size![input 1 (rchan length)] | length?len = 
 			( print!"Starting..."
-                        | printi!size
-			| iterateAndSummon![input map reschannel (rchan d)]   
-			| resultsAggregator![1 size reschannel (cons > nil) finalresult]
-			| d?[] = print!"iterateAndSummon() complete"
-                        | finalresult?r = 
-				print!"Finished..."
-					)))       
+	                | printi!len 
+			| iterateAndSummon![input map (rchan reschannel) (rchan d)]			
+			| resultsAggregator![len len reschannel (cons > nil) (rchan finalresult)]
+                        | finalresult?_ = print!"Finished..."
+				))) {-| d?[] = "done" ))) -}       
 
 run mapReduce![map (cons > [1 2] [2 4] [6 8] nil)]
