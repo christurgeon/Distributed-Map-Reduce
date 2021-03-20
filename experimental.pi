@@ -3,6 +3,10 @@ import "Std/List"
 {- Supplied map, idk how to use it without hardcoding types FOR NOW -}
 def map (#X key:Int value:X):(List [Int X]) = (cons [key value] nil)
 
+{-
+def map [#X key:Int value:X] = (cons [key value] nil)
+-}
+
 {- 
 def compare (key1 val1) = (<= key1 val1)
 def reduce (key values) = (cons [key values] nil) 
@@ -19,14 +23,15 @@ def for [i:Int j:Int p:/[Int Sig] c:/[]] =
 	else c![]
 
 
-def worker[#X work:[Int X] map:MapFunction done:/[]] = 
-	(new br:^Bool (==![0 0 (rchan br)] 
-		      | br?b = if b then (done![] | print!"Bruh") {-(map work)-} 
+def worker[#X work:[a=Int b=X] map:MapFunction done:/[]] = 
+	(val t = work
+	 new br:^Bool (==![0 0 (rchan br)] 
+		      | br?b = if b then (done![] | printi!t.a) {- | (map a b))-}
 					else done![]))
 
 
 {- Experimental loop to summon the workers -}
-def iterateAndSummon [#X input:(List [Int X]) map:MapFunction done:/[]] =
+def iterateAndSummon [#X input:(List [a=Int b=X]) map:MapFunction done:/[]] =
 	if (null input) then 
 		done![]
 	else (new d:^[]
@@ -35,7 +40,7 @@ def iterateAndSummon [#X input:(List [Int X]) map:MapFunction done:/[]] =
 		| d?[] = iterateAndSummon![(cdr input) map done]))
  
 
-def mapReduce [#X map:MapFunction input:(List [Int X])] = 
+def mapReduce [#X map:MapFunction input:(List [a=Int b=X])] = 
 	if (null input) then print!"NULL list!"
 	else (new d:^[] 
 		(for![1 5 \[x:Int c:Sig] = (printi!x | c![]) (rchan d)] {- FOR LOOP FROM CLASS, JUST FOR EXAMPLE-}

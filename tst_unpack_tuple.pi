@@ -1,0 +1,4 @@
+def call [a=Int b=Int] = if (<= a b) then printi!a else printi!b 
+
+
+run (call![5 6])
