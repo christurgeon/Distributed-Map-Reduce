@@ -33,4 +33,4 @@ val lst = (cons > 0 8 1 2 5 3 nil)
 
 {- NOTE: output is interleaved -}
 {- NOTE: errors ignor indentation? -}
-run printFromGet![#Int (int getNth lst 0) int.toString]
+run printFromGet![#Int (getNth lst 0) int.toString]
