@@ -2,45 +2,59 @@ import "Std/List"
 
 {- Supplied map, idk how to use it without hardcoding types FOR NOW -}
 def map (#X key:Int value:X):(List [Int X]) = (cons [key value] nil)
+def reduce (#X key:Int values:(List X)):(List [Int (List X)]) = (cons [key values] nil) 
 
-{- 
-def compare (key1 val1) = (<= key1 val1)
-def reduce (key values) = (cons [key values] nil) 
--} 
 
-type MapFunction = /[#X Int X /(List [Int X])]  
+type MapFunction = /[#X Int X /(List [Int X])] 
+type ReduceFunction = /[#X Int (List X) /(List [Int (List X)])] 
 type ResultsFeeder = /[#X (List [Int X])]
 
-{- Working FOR loop implementation -}
-def for [i:Int j:Int p:/[Int Sig] c:/[]] = 
-	if (<= i j) then 
-		(new d:^[]
-		(p![i (rchan d)]
-		| d?[] = for![(+ i 1) j p c]))
-	else c![]
 
+def printl[x:(List Int) s:/[]] = 
+	if (null x) then s![]
+	else (printi!(car x) | printl![(cdr x) s])
+
+def printup[[x:Int b:Int]] = 
+	(printi!x | printi!b) 
+
+
+def unwrap (#X [a:Int b:(List X)] f:ReduceFunction):(List [Int (List X)]) = (f a b) 
 
 {- 
 Takes in a tuple of key,value, a map function to apply, and a channel to send result
 -}
-def worker[#X [a:Int b:X] map:MapFunction done:ResultsFeeder] = done![(map a b)]
+def worker[#X [a:Int b:X] map:MapFunction done:ResultsFeeder] = 
+	done![(map a b)]
 
+
+{-
+Call reduce with each key and its associated lists of values in the sorted order.
+Combine the output lists of all reduce calls into a single list.
+Send the results through `result` return channel.
+-}
+def reduceAndCombine [#X input:(List [Int (List X)]) reduced:(List (List [Int (List X)])) reducer:ReduceFunction result:/(List (List [Int (List X)]))] = 
+	if (null input) then 
+		result!reduced
+	else	(val r = (unwrap (car input) reducer)                 
+		 reduceAndCombine![(cdr input) (cons r reduced) reducer result])
 
 
 {-
 Aggregator function to reas in `size` number of pairs from the `results` channel
 The pairs come from worker function sending its result after applying map
 -}
-def resultsAggregator [#X current:Int len:Int results:^[#X (List [Int X])] list:(List (List [Int X])) res:/[#X (List (List [Int X]))]] = 
+def resultsAggregator [current:Int len:Int results:^[#X (List [Int X])] list:(List (List [Int Int])) res:/[#X (List (List [Int X]))]] = 
 	if (<= current (- len 1)) then 
-		results?r = resultsAggregator![(+ 1 current) len results (cons > (cons > [2 2] [3 3] nil) nil) res] {-(cons r list) res] -}
+		(print!"result arrived" | 
+		results?r = resultsAggregator![(+ current 1) len results (cons r list) res] {- (cons > (cons > [2 2] [3 3] nil) nil) res] -}
+)
 	else 
 		res![list]
 
 
 {- 
 Iterates through the input and summons workers to compute work unit.
-It sends Sig when complete
+iIt sends Sig when complete
 -}
 def iterateAndSummon [#X input:(List [Int X]) map:MapFunction reschannel:ResultsFeeder done:/[]] =
 	if (null input) then 
@@ -63,19 +77,21 @@ def size [#X input:(List [Int X]) counter:Int total:/Int] =
 {-
 mapReduce driver method
 -}
-def mapReduce [#X map:MapFunction input:(List [Int X])] = 
+def mapReduce [#X map:MapFunction reduce:ReduceFunction input:(List [Int X])] = 
 	if (null input) then 
 		print!"NULL list!"
 	else (new d:^[] 
               new reschannel:^[#X (List [Int X])]
 	      new finalresult:^[#X (List (List [Int X]))]
-	      new length:^Int 
-              (size![input 1 (rchan length)] | length?len = 
+	      new length:^Int
+	      val l = (cons > nil) 
+              (size![input 0 (rchan length)] | length?len = 
 			( print!"Starting..."
 	                | printi!len 
-			| iterateAndSummon![input map (rchan reschannel) (rchan d)]			
-			| resultsAggregator![len len reschannel (cons > nil) (rchan finalresult)]
-                        | finalresult?_ = print!"Finished..."
-				))) {-| d?[] = "done" ))) -}       
+			| iterateAndSummon![input map (rchan reschannel) (rchan d)] 
+			| resultsAggregator![0 len reschannel l (rchan finalresult)] 
+                        | finalresult?r = print!"Finished..."
+				)))
 
-run mapReduce![map (cons > [1 2] [2 4] [6 8] nil)]
+
+run mapReduce![map reduce (cons > [1 2] [2 4] [6 8] nil)]
