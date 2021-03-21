@@ -22,11 +22,20 @@ def printl[x:(List Int) s:/[]] =
 	else (printi!(car x) | printl![(cdr x) s])
 
 def printup[#X #Y [x:X b:Y] f1:/[X /String] f2:/[Y /String]] = print!(+$ (+$ (f1 x) " ") (f2 b)) 
-
 def printList [#X #Y list:(List [X Y]) f1:/[X /String] f2:/[Y /String] res:/[]] = 
 	if (null list) then 
 		res![]
 	else (printup![(car list) f1 f2] | printList![(cdr list) f1 f2 res])
+
+def listToString[#X l:(List X) s:String p:/[X /String] o:/String] =
+	if (null l) then
+		o!s
+	else if (==$ s "") then
+		o!(listToString (cdr l) (p (car l)) p)
+	else
+		o!(listToString (cdr l) (+$ (+$ s " ") (p (car l))) p)
+def xyListToString[[x:Int temp:(List Int)] o:/String] =
+	o!(+$ < (int.toString x) " [" (listToString temp "" int.toString) "]")
 
 def append(#X #Y element:(List [X Y]) list:(List (List [X Y]))):(List (List [X Y])) = (cons element list) 
 {- =========================================================================================-}
@@ -59,7 +68,6 @@ def reduceAndCombine [#X #Y input:(List [X (List Y)]) reduced:(List (List [X (Li
 		 reduceAndCombine![(cdr input) (cons r reduced) reducer result])
 -}
 
-
 def groupMatch[#X #Y curKey:X [testKey:X l:(List Y)] e:/[X X /Bool] b:/Bool] = 
 	b!(e curKey testKey)
 def groupAppend[#X #Y [key:X lst:(List Y)] value:Y out:/[X (List Y)]] = 
@@ -77,8 +85,8 @@ def groupList[#X #Y inList:(List [X Y]) curList:(List [X (List Y)]) e:/[X X /Boo
 	else
 		outList!(groupList (cdr inList) (groupInsert (car inList) curList e) e)
 
-
-
+def reduceAndCombine[#X #Y inList:(List [X Y]) xCompare:/[[X (List Y)] [X (List Y)] /Cmp] e:/[X X /Bool] outList:/(List [X (List Y)])] =
+	outList!(list.sort (groupList inList nil e) xCompare true)
 {-
 Aggregator function to reas in `size` number of pairs from the `results` channel
 The pairs come from worker function sending its result after applying map
@@ -134,3 +142,14 @@ def mapReduce [#X #Y map:MapFunction reduce:ReduceFunction f1:/[X /String] f2:/[
 
 
 run mapReduce![map reduce int.toString int.toString (cons > [1 2] [2 4] [6 8] nil)]
+
+val pre_grp_lst = (cons > [2 1] [1 5] [2 3] [3 4] [1 2] nil)
+val post_grp_lst = (groupList pre_grp_lst nil ==)
+
+def cmp_2d[[v1:Int l1:(List Int)] [v2:Int l2:(List Int)] o:/Cmp] =
+		o!(int.cmp v1 v2)
+
+val final_lst = (reduceAndCombine pre_grp_lst cmp_2d ==)
+
+run print!(listToString post_grp_lst "" xyListToString)
+run print!(listToString final_lst "" xyListToString)
