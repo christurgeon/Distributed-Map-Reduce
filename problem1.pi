@@ -1,22 +1,37 @@
 def printl[l:String] = print!(+$ (+$ "[" l) "]")
 
+def or[b1:Bool b2:Bool out:/Bool] = 
+	if b1 then
+		out!true
+	else if b2 then
+		out!true
+	else
+		out!false
 
 def remove[x:String current:Int size:Int builder:String res:/String] = 
 	if (== current size) then
 		res!builder
 	else
-		(val first = (string.nth x current)
-		 if (or (or (or (== c ';') (== c ',')) (== c '.')) (== c ';')) then 
+		(val c = (string.nth x current)
+		 if (or < (== c ';') (== c ',') (== c '.') (== c '"') (== c '\'')) then 
 			remove![x (+ current 1) size builder res]
 		 else 
-			remove![x (+ current 1) size (+$ builder c) res])
+			remove![x (+ current 1) size (+$ builder (char.toString c)) res])
 
 
 def unpack[[a:Int b:String] res:/[]] = 
 	(new s:^String
-        (remove![(car (string.split " " b)) 0 (size b) "" (rchan s)] 
+        (remove![b 0 (string.size (car (string.split " " b))) "" (rchan s)] 
 	 | s?cleaned = printl![cleaned]
 		))
+
+def unpack_list[i:(List String) l:(List String) o:/(List String)] =
+	if (null i) then
+		o!l
+	else
+		o!(cons < (remove (car i) 0 (string.size (car i)) "" (rchan s)) (unpack_list (cdr i) l))
+
+{- (remove![(car (string.split " " b)) 0 (string.size (car (string.split " " b))) "" (rchan s)] -}
 
 
 def transform [list:(List [Int String]) res:/[]] = 

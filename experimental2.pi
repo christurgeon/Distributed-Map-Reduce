@@ -37,6 +37,12 @@ def listToString[#X l:(List X) s:String p:/[X /String] o:/String] =
 def xyListToString[[x:Int temp:(List Int)] o:/String] =
 	o!(+$ < (int.toString x) " [" (listToString temp "" int.toString) "]")
 
+def printupGrouped[#X #Y [x:X b:(List Y)] f1:/[X /String] f2:/[(List Y) /String]] = print!(+$ < (f1 x) " " (f2 b)) 
+def printGroupedList [#X #Y list:(List [X (List Y)]) f1:/[X /String] f2:/[(List Y) /String] res:/[]] = 
+	if (null list) then 
+		res![]
+	else (printupGrouped![(car list) f1 f2] | printGroupedList![(cdr list) f1 f2 res])
+
 def append(#X #Y element:(List [X Y]) list:(List (List [X Y]))):(List (List [X Y])) = (cons element list) 
 {- =========================================================================================-}
 
@@ -107,7 +113,7 @@ def iterateAndSummon [#X #Y input:(List [X Y]) map:MapFunction reschannel:/[X Y]
 	if (null input) then 
 		done![]
 	else (worker![(car input) map reschannel]
-	     | iterateAndSummon![(cdr input) map reschannel done])
+		 | iterateAndSummon![(cdr input) map reschannel done])
  
 
 
@@ -124,30 +130,30 @@ def size [#X #Y input:(List [X Y]) counter:Int total:/Int] =
 {-
 mapReduce driver method
 -}
-def mapReduce [#X #Y map:MapFunction reduce:ReduceFunction f1:/[X /String] f2:/[Y /String] input:(List [X Y])] = 
+def mapReduce [#X #Y map:MapFunction reduce:ReduceFunction xCompare:/[[X (List Y)] [X (List Y)] /Cmp] e:/[X X /Bool] f1:/[X /String] f2:/[Y /String] input:(List [X Y])] = 
 	if (null input) then 
 		print!"NULL list!"
 	else (new d:^[] 
-              new reschannel:^[X Y]
-	      new finalresult:^(List [X Y])
-	      new length:^Int
-	      val l = (cons > nil)
-              (size![input 0 (rchan length)] | length?len = 
+			  new reschannel:^[X Y]
+		  new finalresult:^(List [X Y])
+		  new length:^Int
+		  val l = (cons > nil)
+			  (size![input 0 (rchan length)] | length?len = 
 			( print!"Starting..."
-	                | printi!len 
+					| printi!len 
 			| iterateAndSummon![input map (rchan reschannel) (rchan d)] 
 			| resultsAggregator![0 len reschannel l (rchan finalresult)] 
-                        | finalresult?r = (printList![r f1 f2 (rchan d)] | d?_ = print!"done")
+						| finalresult?r = (printupGrouped![(reduceAndCombine r xCompare e) f1 f2 (rchan d)] | d?_ = print!"done")
 				)))
 
 
-run mapReduce![map reduce int.toString int.toString (cons > [1 2] [2 4] [6 8] nil)]
+def cmp_2d[[v1:Int l1:(List Int)] [v2:Int l2:(List Int)] o:/Cmp] =
+		o!(int.cmp v1 v2)
+
+run mapReduce![map reduce cmp_2d == int.toString listToString (cons > [1 2] [2 4] [6 8] nil)]
 
 val pre_grp_lst = (cons > [2 1] [1 5] [2 3] [3 4] [1 2] nil)
 val post_grp_lst = (groupList pre_grp_lst nil ==)
-
-def cmp_2d[[v1:Int l1:(List Int)] [v2:Int l2:(List Int)] o:/Cmp] =
-		o!(int.cmp v1 v2)
 
 val final_lst = (reduceAndCombine pre_grp_lst cmp_2d ==)
 

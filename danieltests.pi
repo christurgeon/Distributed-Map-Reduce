@@ -21,9 +21,9 @@ def getNthInt(l:(List Int) n:Int):Int =
 
 {-
 run (new res:^[Int Int String]
-     val default = 999999
-     (getNth![default lst 0 (rchan res)]
-     | res?x = printFromGet![x int.toString]))
+	 val default = 999999
+	 (getNth![default lst 0 (rchan res)]
+	 | res?x = printFromGet![x int.toString]))
 -}
 def getNth [#X default:X l:(List X) n:Int res:/[X Int String]] =
 	if (null l) then 
