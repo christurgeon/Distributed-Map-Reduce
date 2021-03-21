@@ -60,7 +60,22 @@ def reduceAndCombine [#X #Y input:(List [X (List Y)]) reduced:(List (List [X (Li
 -}
 
 
-
+def groupMatch[#X #Y curKey:X [testKey:X l:(List Y)] e:/[X X /Bool] b:/Bool] = 
+	b!(e curKey testKey)
+def groupAppend[#X #Y [key:X lst:(List Y)] value:Y out:/[X (List Y)]] = 
+	out![key (cons > value lst)]
+def groupInsert[#X #Y [key:X value:Y] curList:(List [X (List Y)]) e:/[X X /Bool] outList:/(List [X (List Y)])] =
+	if (null curList) then
+		outList!(cons > [key (cons > value nil)] nil)
+	else if (groupMatch key (car curList) e) then
+		outList!(cons > (groupAppend (car curList) value) (cdr curList))
+	else
+		outList!(cons > (car curList) (groupInsert [key value] (cdr curList) e))
+def groupList[#X #Y inList:(List [X Y]) curList:(List [X (List Y)]) e:/[X X /Bool] outList:/(List [X (List Y)])] =
+	if (null inList) then
+		outList!curList
+	else
+		outList!(groupList (cdr inList) (groupInsert (car inList) curList e) e)
 
 
 
