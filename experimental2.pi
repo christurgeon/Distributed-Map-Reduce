@@ -1,0 +1,121 @@
+import "Std/List"
+
+
+{- Supplied map, idk how to use it without hardcoding types FOR NOW -}
+def map (#X #Y key:X value:Y):(List [X Y]) = (cons [key value] nil)
+def reduce (#X #Y key:X values:(List Y)):(List [X (List Y)]) = (cons [key values] nil) 
+
+
+{- NEED DEFINITION FOR compare HERE-}
+
+
+type MapFunction = /[#X #Y X Y /(List [X Y])] 
+type ReduceFunction = /[#X #Y X (List Y) /(List [X (List Y)])] 
+type ResultsFeeder = /[#X #Y (List [X Y])]
+
+
+
+{- =======================================================================================
+				HELPERS -}
+def printl[x:(List Int) s:/[]] = 
+	if (null x) then s![]
+	else (printi!(car x) | printl![(cdr x) s])
+
+def printup[#X #Y [x:X b:Y] f1:/[X /String] f2:/[Y /String]] = print!(+$ (+$ (f1 x) " ") (f2 b)) 
+
+def printList [#X #Y list:(List [X Y]) f1:/[X /String] f2:/[Y /String] res:/[]] = 
+	if (null list) then 
+		res![]
+	else (printup![(car list) f1 f2] | printList![(cdr list) f1 f2 res])
+
+def append(#X #Y element:(List [X Y]) list:(List (List [X Y]))):(List (List [X Y])) = (cons element list) 
+{- =========================================================================================-}
+
+
+
+
+{- 
+Takes in a tuple of key,value, a map function to apply, and a channel to send result
+-}
+def worker[#X #Y [a:X b:Y] map:MapFunction done:/[X Y]] = 
+	done!(car (map a b))
+
+
+
+
+{-
+YOU CAN ERASE ALL OF THIS , WOULD HAVE BEEN LOGIC TO HELP WITH THE GOURP AND SORT
+	1. basically the return of results aggregator will be the input to your function here
+	2. then inside mapReduce you can read in from `finalresult?r = ` and call your sort and group stuff using r
+
+Call reduce with each key and its associated lists of values in the sorted order.
+Combine the output lists of all reduce calls into a single list.
+Send the results through `result` return channel.
+
+def reduceAndCombine [#X #Y input:(List [X (List Y)]) reduced:(List (List [X (List Y)])) reducer:ReduceFunction result:/(List (List [X (List Y)]))] = 
+	if (null input) then 
+		result!reduced
+	else	(val r = (unwrap (car input) reducer)                 
+		 reduceAndCombine![(cdr input) (cons r reduced) reducer result])
+-}
+
+
+
+
+
+
+{-
+Aggregator function to reas in `size` number of pairs from the `results` channel
+The pairs come from worker function sending its result after applying map
+-}
+def resultsAggregator [#X #Y current:Int len:Int results:^[X Y] list:(List [X Y]) res:/(List [X Y])] = 
+	if (<= current (- len 1)) then 
+		(print!"result arrived" | 
+		results?r = resultsAggregator![(+ current 1) len results (cons r list) res])
+	else 
+		res!list
+
+
+{- 
+Iterates through the input and summons workers to compute work unit.
+iIt sends Sig when complete
+-}
+def iterateAndSummon [#X #Y input:(List [X Y]) map:MapFunction reschannel:/[X Y] done:/[]] =
+	if (null input) then 
+		done![]
+	else (worker![(car input) map reschannel]
+	     | iterateAndSummon![(cdr input) map reschannel done])
+ 
+
+
+{- 
+Accepts a list and a starting counter value and loops through the list 
+and increasing counter by that amoung
+-} 
+def size [#X #Y input:(List [X Y]) counter:Int total:/Int] =
+	if (null input) then
+		total!counter
+	else size![(cdr input) (+ counter 1) total]
+
+
+{-
+mapReduce driver method
+-}
+def mapReduce [#X #Y map:MapFunction reduce:ReduceFunction f1:/[X /String] f2:/[Y /String] input:(List [X Y])] = 
+	if (null input) then 
+		print!"NULL list!"
+	else (new d:^[] 
+              new reschannel:^[X Y]
+	      new finalresult:^(List [X Y])
+	      new length:^Int
+	      val l = (cons > nil)
+              (size![input 0 (rchan length)] | length?len = 
+			( print!"Starting..."
+	                | printi!len 
+			| iterateAndSummon![input map (rchan reschannel) (rchan d)] 
+			| resultsAggregator![0 len reschannel l (rchan finalresult)] 
+                        | finalresult?r = (printList![r f1 f2 (rchan d)] | d?_ = print!"done")
+				)))
+
+
+run mapReduce![map reduce int.toString int.toString (cons > [1 2] [2 4] [6 8] nil)]

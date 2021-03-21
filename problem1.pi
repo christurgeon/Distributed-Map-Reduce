@@ -1,0 +1,37 @@
+def printl[l:String] = print!(+$ (+$ "[" l) "]")
+
+
+def remove[x:String current:Int size:Int builder:String res:/String] = 
+	if (== current size) then
+		res!builder
+	else
+		(val first = (string.nth x current)
+		 if (or (or (or (== c ';') (== c ',')) (== c '.')) (== c ';')) then 
+			remove![x (+ current 1) size builder res]
+		 else 
+			remove![x (+ current 1) size (+$ builder c) res])
+
+
+def unpack[[a:Int b:String] res:/[]] = 
+	(new s:^String
+        (remove![(car (string.split " " b)) 0 (size b) "" (rchan s)] 
+	 | s?cleaned = printl![cleaned]
+		))
+
+
+def transform [list:(List [Int String]) res:/[]] = 
+	if (null list) then res![]
+	else
+		(new b:^[]
+		(unpack![(car list) (rchan b)] | b?_ = transform![(cdr list) res]))
+
+
+run (
+	val input = (cons > 
+			[1 " ;his  I consider this here is"]
+			[2 "  his majesty therefore history  "]
+			[3 "hello    world i s how are you  "]
+			nil)
+	new x:^[]
+	(transform![input (rchan x)] | x?_ = print!"Done")
+)

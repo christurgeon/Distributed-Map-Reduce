@@ -14,17 +14,15 @@ def printl[x:(List Int) s:/[]] =
 	if (null x) then s![]
 	else (printi!(car x) | printl![(cdr x) s])
 
-def printup[#X [x:Int b:X] f:/[X /String]] = 
-	(printi!x | print!(f b)) 
-
+def printup[#X [x:Int b:X] f:/[X /String]] = print!(+$ (+$ (int.toString x) " ") (f b)) 
 
 def printList [#X list:(List [Int X]) f:/[X /String] res:/[]] = 
 	if (null list) then 
 		res![]
 	else (printup![(car list) f] | printList![(cdr list) f res])
-	
 
 def append(#X element:(List [Int X]) list:(List (List [Int X]))):(List (List [Int X])) = (cons element list) 
+
 
 
 def unwrap (#X [a:Int b:(List X)] f:ReduceFunction):(List [Int (List X)]) = (f a b) 
@@ -84,21 +82,21 @@ def size [#X input:(List [Int X]) counter:Int total:/Int] =
 {-
 mapReduce driver method
 -}
-def mapReduce [#X map:MapFunction reduce:ReduceFunction input:(List [Int X])] = 
+def mapReduce [#X map:MapFunction reduce:ReduceFunction f:/[X /String] input:(List [Int X])] = 
 	if (null input) then 
 		print!"NULL list!"
 	else (new d:^[] 
               new reschannel:^[Int X]
 	      new finalresult:^(List [Int X])
 	      new length:^Int
-	      val l = (cons > nil) 
+	      val l = (cons > nil)
               (size![input 0 (rchan length)] | length?len = 
 			( print!"Starting..."
 	                | printi!len 
 			| iterateAndSummon![input map (rchan reschannel) (rchan d)] 
 			| resultsAggregator![0 len reschannel l (rchan finalresult)] 
-                        | finalresult?r = (printList![r int.toString (rchan d)] | d?_ = print!"done")
+                        | finalresult?r = (printList![r f (rchan d)] | d?_ = print!"done")
 				)))
 
 
-run mapReduce![map reduce (cons > [1 2] [2 4] [6 8] nil)]
+run mapReduce![map reduce int.toString (cons > [1 2] [2 4] [6 8] nil)]
