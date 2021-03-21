@@ -16,13 +16,23 @@ def getNthInt(l:(List Int) n:Int):Int =
 {- (null | print!"Index out of bounds") -}
 
 {- type getResponse = [#X X Int String] -}
-def getNth([#X l:(List X) n:Int]):[#X X Int String] =
-	if (null l) then [null 0 "Index out of bounds"]
-	else if (>= n 1) then (getNth[#X (cdr l) (- n 1)])
-	else [(car l) 0 "sucess"]
+def getNth [#X default:X l:(List X) n:Int res:/[X Int String]] =
+	if (null l) then 
+		res![default 0 "outofbounds"]
+	else if (>= n 1) then 
+		getNth![default (cdr l) (- n 1) res]
+	else 
+		res![(car l) 1 "success"]
+
 def printFromGet[#X [v:X s:Int t:String] p:/[X /String]] =
 	if (== s 0) then print!t
 	else print!(p v)
+
+def listToString[#X l:(List X) s:String p:/[X /String]] =
+	if (null l) then
+		print!s
+	else
+		listToString![(cdr l) (+$ (+$ s " ") (p (car l))) p]
 
 val lst = (cons > 0 8 1 2 5 3 nil)
 
@@ -30,7 +40,18 @@ val lst = (cons > 0 8 1 2 5 3 nil)
 {- run print2nd![#Int lst int.toString] -}
 {- run printNth![#Int lst -1 int.toString] -}
 {- run printi!(getNthInt lst 3) -}
+{-
+run (new res:^[Int Int String]
+     val default = 999999
+     (getNth![default lst 0 (rchan res)]
+     | res?x = printFromGet![x int.toString]))
+-}
 
 {- NOTE: output is interleaved -}
-{- NOTE: errors ignor indentation? -}
-run printFromGet![#Int (getNth lst 0) int.toString]
+{- NOTE: errors ignore indentation -}
+{- NOTE: find facts on X by "run print!(X)" -}
+{- sort = /[#X (List X) /[X X /Cmp] Bool /(List X)] -}
+
+run print!(+$ (+$ "yeet" " ") "yote")
+run listToString![lst "" int.toString]
+run listToString![(list.sort lst int.cmp (== 0 0)) "" int.toString]
