@@ -37,10 +37,10 @@ def printFromGet[#X [v:X s:Int t:String] p:/[X /String]] =
 	else print!(p v)
 
 {-
-	OLD, function changed
+	OLD, function changed may or may not owkr
 run print!(+$ (+$ "yeet" " ") "yote")
-run listToString![lst "" int.toString]
-run listToString![(list.sort lst int.cmp (== 0 0)) "" int.toString]
+run print!(listToString lst "" int.toString)
+run print!(listToString (list.sort lst int.cmp (== 0 0)) "" int.toString)
 
 val lst2 = (list.sort lst int.cmp (== 0 0))
 run listToString![lst2 "" int.toString]
@@ -50,6 +50,8 @@ run print!(cmp.toString (int.cmp 0 0))
 def listToString[#X l:(List X) s:String p:/[X /String] o:/String] =
 	if (null l) then
 		o!s
+	else if (==$ s "") then
+		o!(listToString (cdr l) (p (car l)) p)
 	else
 		o!(listToString (cdr l) (+$ (+$ s " ") (p (car l))) p)
 
@@ -90,7 +92,7 @@ val lst = (cons > 0 8 1 2 5 3 nil)
 val lst_2d = (cons > [0 "zero"] [8 "eight"] [1 "one"] [2 "two"] [5 "five"] [3 "three"] nil)
 
 def xyListToString[[x:Int temp:(List Int)] o:/String] =
-	o!(+$ < (int.toString x) " [" (listToString temp "" int.toString) "] ")
+	o!(+$ < (int.toString x) " [" (listToString temp "" int.toString) "]")
 
 val pre_grp_lst = (cons > [2 1] [1 5] [2 3] [3 4] [1 2] nil)
 val post_grp_lst = (groupList pre_grp_lst nil ==)
