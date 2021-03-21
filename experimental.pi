@@ -14,8 +14,17 @@ def printl[x:(List Int) s:/[]] =
 	if (null x) then s![]
 	else (printi!(car x) | printl![(cdr x) s])
 
-def printup[[x:Int b:Int]] = 
-	(printi!x | printi!b) 
+def printup[#X [x:Int b:X] f:/[X /String]] = 
+	(printi!x | print!(f b)) 
+
+
+def printList [#X list:(List [Int X]) f:/[X /String] res:/[]] = 
+	if (null list) then 
+		res![]
+	else (printup![(car list) f] | printList![(cdr list) f res])
+	
+
+def append(#X element:(List [Int X]) list:(List (List [Int X]))):(List (List [Int X])) = (cons element list) 
 
 
 def unwrap (#X [a:Int b:(List X)] f:ReduceFunction):(List [Int (List X)]) = (f a b) 
@@ -23,9 +32,8 @@ def unwrap (#X [a:Int b:(List X)] f:ReduceFunction):(List [Int (List X)]) = (f a
 {- 
 Takes in a tuple of key,value, a map function to apply, and a channel to send result
 -}
-def worker[#X [a:Int b:X] map:MapFunction done:ResultsFeeder] = 
-	done![(map a b)]
-
+def worker[#X [a:Int b:X] map:MapFunction done:/[Int X]] = 
+	done!(car (map a b))
 
 {-
 Call reduce with each key and its associated lists of values in the sorted order.
@@ -43,20 +51,19 @@ def reduceAndCombine [#X input:(List [Int (List X)]) reduced:(List (List [Int (L
 Aggregator function to reas in `size` number of pairs from the `results` channel
 The pairs come from worker function sending its result after applying map
 -}
-def resultsAggregator [current:Int len:Int results:^[#X (List [Int X])] list:(List (List [Int Int])) res:/[#X (List (List [Int X]))]] = 
+def resultsAggregator [#X current:Int len:Int results:^[Int X] list:(List [Int X]) res:/(List [Int X])] = 
 	if (<= current (- len 1)) then 
 		(print!"result arrived" | 
-		results?r = resultsAggregator![(+ current 1) len results (cons r list) res] {- (cons > (cons > [2 2] [3 3] nil) nil) res] -}
-)
+		results?r = resultsAggregator![(+ current 1) len results (cons r list) res])
 	else 
-		res![list]
+		res!list
 
 
 {- 
 Iterates through the input and summons workers to compute work unit.
 iIt sends Sig when complete
 -}
-def iterateAndSummon [#X input:(List [Int X]) map:MapFunction reschannel:ResultsFeeder done:/[]] =
+def iterateAndSummon [#X input:(List [Int X]) map:MapFunction reschannel:/[Int X] done:/[]] =
 	if (null input) then 
 		done![]
 	else (worker![(car input) map reschannel]
@@ -81,8 +88,8 @@ def mapReduce [#X map:MapFunction reduce:ReduceFunction input:(List [Int X])] =
 	if (null input) then 
 		print!"NULL list!"
 	else (new d:^[] 
-              new reschannel:^[#X (List [Int X])]
-	      new finalresult:^[#X (List (List [Int X]))]
+              new reschannel:^[Int X]
+	      new finalresult:^(List [Int X])
 	      new length:^Int
 	      val l = (cons > nil) 
               (size![input 0 (rchan length)] | length?len = 
@@ -90,7 +97,7 @@ def mapReduce [#X map:MapFunction reduce:ReduceFunction input:(List [Int X])] =
 	                | printi!len 
 			| iterateAndSummon![input map (rchan reschannel) (rchan d)] 
 			| resultsAggregator![0 len reschannel l (rchan finalresult)] 
-                        | finalresult?r = print!"Finished..."
+                        | finalresult?r = (printList![r int.toString (rchan d)] | d?_ = print!"done")
 				)))
 
 
