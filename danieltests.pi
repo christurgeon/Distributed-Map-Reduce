@@ -37,20 +37,23 @@ def printFromGet[#X [v:X s:Int t:String] p:/[X /String]] =
 	else print!(p v)
 
 {-
+	OLD, function changed may or may not owkr
 run print!(+$ (+$ "yeet" " ") "yote")
-run listToString![lst "" int.toString]
-run listToString![(list.sort lst int.cmp (== 0 0)) "" int.toString]
+run print!(listToString lst "" int.toString)
+run print!(listToString (list.sort lst int.cmp (== 0 0)) "" int.toString)
 
 val lst2 = (list.sort lst int.cmp (== 0 0))
 run listToString![lst2 "" int.toString]
 
 run print!(cmp.toString (int.cmp 0 0))
 -}
-def listToString[#X l:(List X) s:String p:/[X /String]] =
+def listToString[#X l:(List X) s:String p:/[X /String] o:/String] =
 	if (null l) then
-		print!s
+		o!s
+	else if (==$ s "") then
+		o!(listToString (cdr l) (p (car l)) p)
 	else
-		listToString![(cdr l) (+$ (+$ s " ") (p (car l))) p]
+		o!(listToString (cdr l) (+$ (+$ s " ") (p (car l))) p)
 
 {-
 run listToString![(list.sort lst int.cmp (== 0 0)) "" int.toString]
@@ -65,8 +68,34 @@ def cmp_2d[[v1:Int s1:String] [v2:Int s2:String] o:/Cmp] =
 {- run print!(testXY 0 false) -}
 def testXY[#X #Y x:X y:Y o:/String] = o!"Yay"
 
+{- type GroupedList = (List [X (List Y)]) -}
+
+{- type XEquals = /[#X X X /Bool] -}
+def groupMatch[#X #Y curKey:X [testKey:X l:(List Y)] e:/[X X /Bool] b:/Bool] = 
+	b!(e curKey testKey)
+def groupAppend[#X #Y [key:X lst:(List Y)] value:Y out:/[X (List Y)]] = 
+	out![key (cons > value lst)]
+def groupInsert[#X #Y [key:X value:Y] curList:(List [X (List Y)]) e:/[X X /Bool] outList:/(List [X (List Y)])] =
+	if (null curList) then
+		outList!(cons > [key (cons > value nil)] nil)
+	else if (groupMatch key (car curList) e) then
+		outList!(cons > (groupAppend (car curList) value) (cdr curList))
+	else
+		outList!(cons > (car curList) (groupInsert [key value] (cdr curList) e))
+def groupList[#X #Y inList:(List [X Y]) curList:(List [X (List Y)]) e:/[X X /Bool] outList:/(List [X (List Y)])] =
+	if (null inList) then
+		outList!curList
+	else
+		outList!(groupList (cdr inList) (groupInsert (car inList) curList e) e)
+
 val lst = (cons > 0 8 1 2 5 3 nil)
 val lst_2d = (cons > [0 "zero"] [8 "eight"] [1 "one"] [2 "two"] [5 "five"] [3 "three"] nil)
+
+def xyListToString[[x:Int temp:(List Int)] o:/String] =
+	o!(+$ < (int.toString x) " [" (listToString temp "" int.toString) "]")
+
+val pre_grp_lst = (cons > [2 1] [1 5] [2 3] [3 4] [1 2] nil)
+val post_grp_lst = (groupList pre_grp_lst nil ==)
 
 {- NOTE: output is interleaved -}
 {- NOTE: errors ignore indentation -}
@@ -74,3 +103,4 @@ val lst_2d = (cons > [0 "zero"] [8 "eight"] [1 "one"] [2 "two"] [5 "five"] [3 "t
 {- sort = /[#X (List X) /[X X /Cmp] Bool /(List X)] -}
 
 run print!"working"
+run print!(listToString post_grp_lst "" xyListToString)
