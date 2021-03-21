@@ -34,7 +34,13 @@ def listToString[#X l:(List X) s:String p:/[X /String]] =
 	else
 		listToString![(cdr l) (+$ (+$ s " ") (p (car l))) p]
 
+def print_Int_Str[[v:Int s:String] o:/String] =
+	o!s
+def cmp_2d[[v1:Int s1:String] [v2:Int s2:String] o:/Cmp] =
+	o!(int.cmp v1 v2)
+
 val lst = (cons > 0 8 1 2 5 3 nil)
+val lst_2d = (cons > [0 "zero"] [8 "eight"] [1 "one"] [2 "two"] [5 "five"] [3 "three"] nil)
 
 {- run printi!(car (cdr (cdr lst))) -}
 {- run print2nd![#Int lst int.toString] -}
@@ -46,12 +52,22 @@ run (new res:^[Int Int String]
      (getNth![default lst 0 (rchan res)]
      | res?x = printFromGet![x int.toString]))
 -}
+{-
+run print!(+$ (+$ "yeet" " ") "yote")
+run listToString![lst "" int.toString]
+run listToString![(list.sort lst int.cmp (== 0 0)) "" int.toString]
+
+val lst2 = (list.sort lst int.cmp (== 0 0))
+run listToString![lst2 "" int.toString]
+
+run print!(cmp.toString (int.cmp 0 0))
+-}
 
 {- NOTE: output is interleaved -}
 {- NOTE: errors ignore indentation -}
 {- NOTE: find facts on X by "run print!(X)" -}
 {- sort = /[#X (List X) /[X X /Cmp] Bool /(List X)] -}
 
-run print!(+$ (+$ "yeet" " ") "yote")
-run listToString![lst "" int.toString]
 run listToString![(list.sort lst int.cmp (== 0 0)) "" int.toString]
+val lst2d_sorted = (list.sort lst_2d cmp_2d (== 0 0))
+run listToString![lst2d_sorted "" print_Int_Str]
