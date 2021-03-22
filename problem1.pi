@@ -67,13 +67,13 @@ run print!(listToString (string.split "!" testStr3) "" string.toString)
 val testList = (cons > "proof" "my" "baby" "works!" "  spaces  " nil)
 
 run print!(listToString input "" string.toString)
--}
 
 val testString = "this is a test"
 run print!(string.toString testString)
 run print!testString
+-}
 
-val testList1 = (cons > 1 2 3 nil)
+val testList1 = (cons > 91 82 73 nil)
 run print!(listToString testList1 "" int.toString)
-val testList2 = (cons > "1" "2" "3" nil)
+val testList2 = (cons > "91" "82" "73" nil)
 run print!(listToString testList2 "" string.toString)
