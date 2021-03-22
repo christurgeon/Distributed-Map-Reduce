@@ -11,42 +11,69 @@ def or[b1:Bool b2:Bool out:/Bool] =
 def remove[x:String current:Int size:Int builder:String res:/String] = 
 	if (== current size) then
 		res!builder
-	else
-		(val c = (string.nth x current)
-		 if (or < (== c ';') (== c ',') (== c '.') (== c '"') (== c '\'')) then 
-			remove![x (+ current 1) size builder res]
-		 else 
-			remove![x (+ current 1) size (+$ builder (char.toString c)) res])
+	else (
+		val c = (string.nth x current)
+		if (or < (== c ',') (== c '.') (== c '!') (== c '?') (== c ';')  (== c ':') (== c '"') (== c '\'')) then 
+			res!(remove x (+ current 1) size builder)
+		else 
+			res!(remove x (+ current 1) size (+$ builder (char.toString c)))
+	)
 
 
-def unpack[[a:Int b:String] res:/[]] = 
-	(new s:^String
-        (remove![b 0 (string.size (car (string.split " " b))) "" (rchan s)] 
-	 | s?cleaned = printl![cleaned]
-		))
-
-def unpack_list[i:(List String) l:(List String) o:/(List String)] =
+def clean_strings[i:(List String) l:(List String) o:/(List String)] =
 	if (null i) then
 		o!l
 	else
-		o!(cons < (remove (car i) 0 (string.size (car i)) "" (rchan s)) (unpack_list (cdr i) l))
+		o!(cons > (remove (car i) 0 (string.size (car i)) "") (clean_strings (cdr i) l))
 
 {- (remove![(car (string.split " " b)) 0 (string.size (car (string.split " " b))) "" (rchan s)] -}
 
-
-def transform [list:(List [Int String]) res:/[]] = 
-	if (null list) then res![]
+def transform [i:(List String) l:(List String) o:/(List String)] = 
+	if (null i) then
+		o!l
 	else
-		(new b:^[]
-		(unpack![(car list) (rchan b)] | b?_ = transform![(cdr list) res]))
+		o!(list.append > (clean_strings (string.split " " (car i)) nil) (transform (cdr i) l))
 
+def listToString[#X l:(List X) s:String p:/[X /String] o:/String] =
+	if (null l) then
+		o!s
+	else if (==$ s "") then
+		o!(listToString (cdr l) (p (car l)) p)
+	else
+		o!(listToString (cdr l) (+$ < s " " (p (car l))) p)
 
-run (
+{-
 	val input = (cons > 
 			[1 " ;his  I consider this here is"]
 			[2 "  his majesty therefore history  "]
 			[3 "hello    world i s how are you  "]
 			nil)
-	new x:^[]
-	(transform![input (rchan x)] | x?_ = print!"Done")
-)
+-}
+
+val input = (cons > " ;his  I consider this here is" "  his majesty therefore history  " "hello    world i s how are you  " nil)
+{- 
+run print!(listToString (transform input nil) "" string.toString)
+run print!(listToString (clean_strings input nil) "" string.toString)
+
+val testStr1 = "hi;how.are'you? :)"
+run print!(remove testStr1 1 (string.size testStr1) "")
+
+val testStr2 = " lots  of spaces   whoo I do l o v e spaces "
+run print!(listToString (string.split " " testStr2) "" string.toString)
+
+val testStr3 = "No!Spaces Test"
+run print!(listToString (string.split "!" testStr3) "" string.toString)
+
+val testList = (cons > "proof" "my" "baby" "works!" "  spaces  " nil)
+
+run print!(listToString input "" string.toString)
+-}
+
+val testString = "this is a test"
+run print!(string.toString testString)
+run print!testString
+
+val testList1 = (cons > 1 2 3 nil)
+run print!(listToString testList1 "" int.toString)
+val testList2 = (cons > "1" "2" "3" nil)
+run print!(listToString testList2 "" string.toString)
