@@ -3,47 +3,43 @@ import "Std/List"
 
 {- Supplied map, idk how to use it without hardcoding types FOR NOW -}
 def map (#X #Y key:X value:Y):(List [X Y]) = (cons [key value] nil)
-def reduce (#X #Y key:X values:(List Y)):(List [X (List Y)]) = (cons [key values] nil) 
-
-
-{- NEED DEFINITION FOR compare HERE-}
+def reduce (#X #Y [key:X values:(List Y)]):(List [X (List Y)]) = (cons [key values] nil) 
 
 
 type MapFunction = /[#X #Y X Y /(List [X Y])] 
-type ReduceFunction = /[#X #Y X (List Y) /(List [X (List Y)])] 
+type ReduceFunction = /[#X #Y [X (List Y)] /(List [X (List Y)])] 
 type ResultsFeeder = /[#X #Y (List [X Y])]
 
 
-
-{- =======================================================================================
-				HELPERS -}
+{- ========================================================  HELPERS -}
 def printl[x:(List Int) s:/[]] = 
 	if (null x) then s![]
 	else (printi!(car x) | printl![(cdr x) s])
 
 def printup[#X #Y [x:X b:Y] f1:/[X /String] f2:/[Y /String]] = print!(+$ (+$ (f1 x) " ") (f2 b)) 
-def printList [#X #Y list:(List [X Y]) f1:/[X /String] f2:/[Y /String] res:/[]] = 
-	if (null list) then 
-		res![]
+
+def printList[#X #Y list:(List [X Y]) f1:/[X /String] f2:/[Y /String] res:/[]] = 
+	if (null list) then res![]
 	else (printup![(car list) f1 f2] | printList![(cdr list) f1 f2 res])
 
-def listToString[#X l:(List X) s:String p:/[X /String] o:/String] =
+
+def listToString[#Y l:(List Y) s:String p:/[Y /String] o:/String] =
 	if (null l) then
 		o!s
 	else if (==$ s "") then
 		o!(listToString (cdr l) (p (car l)) p)
 	else
 		o!(listToString (cdr l) (+$ (+$ s " ") (p (car l))) p)
-def xyListToString[[x:Int temp:(List Int)] o:/String] =
-	o!(+$ < (int.toString x) " [" (listToString temp "" int.toString) "]")
 
-def printupGrouped[#X #Y [x:X b:(List Y)] f1:/[X /String] f2:/[(List Y) /String]] = print!(+$ < (f1 x) " " (f2 b)) 
-def printGroupedList [#X #Y list:(List [X (List Y)]) f1:/[X /String] f2:/[(List Y) /String] res:/[]] = 
-	if (null list) then 
-		res![]
+def xyListToString[#X #Y [x:X temp:(List Y)] f1:/[X /String] f2:/[Y /String] o:/String] =
+	o!(+$ < (f1 x) " [" (listToString temp "" f2) "]")
+
+def printupGrouped[#X #Y [x:X b:(List Y)] f1:/[X /String] f2:/[Y /String]] = print!(xyListToString [x b] f1 f2) 
+
+def printGroupedList [#X #Y list:(List [X (List Y)]) f1:/[X /String] f2:/[Y /String] res:/[]] = 
+	if (null list) then res![]
 	else (printupGrouped![(car list) f1 f2] | printGroupedList![(cdr list) f1 f2 res])
 
-def append(#X #Y element:(List [X Y]) list:(List (List [X Y]))):(List (List [X Y])) = (cons element list) 
 {- =========================================================================================-}
 
 
@@ -52,27 +48,9 @@ def append(#X #Y element:(List [X Y]) list:(List (List [X Y]))):(List (List [X Y
 {- 
 Takes in a tuple of key,value, a map function to apply, and a channel to send result
 -}
-def worker[#X #Y [a:X b:Y] map:MapFunction done:/[X Y]] = 
-	done!(car (map a b))
+def worker[#X #Y [a:X b:Y] map:MapFunction done:/[X Y]] = done!(car (map a b))
 
 
-
-
-{-
-YOU CAN ERASE ALL OF THIS , WOULD HAVE BEEN LOGIC TO HELP WITH THE GOURP AND SORT
-	1. basically the return of results aggregator will be the input to your function here
-	2. then inside mapReduce you can read in from `finalresult?r = ` and call your sort and group stuff using r
-
-Call reduce with each key and its associated lists of values in the sorted order.
-Combine the output lists of all reduce calls into a single list.
-Send the results through `result` return channel.
-
-def reduceAndCombine [#X #Y input:(List [X (List Y)]) reduced:(List (List [X (List Y)])) reducer:ReduceFunction result:/(List (List [X (List Y)]))] = 
-	if (null input) then 
-		result!reduced
-	else	(val r = (unwrap (car input) reducer)                 
-		 reduceAndCombine![(cdr input) (cons r reduced) reducer result])
--}
 
 def groupMatch[#X #Y curKey:X [testKey:X l:(List Y)] e:/[X X /Bool] b:/Bool] = 
 	b!(e curKey testKey)
@@ -90,9 +68,10 @@ def groupList[#X #Y inList:(List [X Y]) curList:(List [X (List Y)]) e:/[X X /Boo
 		outList!curList
 	else
 		outList!(groupList (cdr inList) (groupInsert (car inList) curList e) e)
-
 def reduceAndCombine[#X #Y inList:(List [X Y]) xCompare:/[[X (List Y)] [X (List Y)] /Cmp] e:/[X X /Bool] outList:/(List [X (List Y)])] =
 	outList!(list.sort (groupList inList nil e) xCompare true)
+
+
 {-
 Aggregator function to reas in `size` number of pairs from the `results` channel
 The pairs come from worker function sending its result after applying map
@@ -117,45 +96,43 @@ def iterateAndSummon [#X #Y input:(List [X Y]) map:MapFunction reschannel:/[X Y]
  
 
 
-{- 
-Accepts a list and a starting counter value and loops through the list 
-and increasing counter by that amoung
--} 
-def size [#X #Y input:(List [X Y]) counter:Int total:/Int] =
+{-
+IN: <reduce> function specified by user
+IN: <input> list that is already sorted and grouped
+OUT: <res> a channel to write out the list after reduce is applied on each element
+-}
+def reduceHandler [#X #Y reduce:ReduceFunction input:(List [X (List Y)]) list:(List [X (List Y)]) res:/(List [X (List Y)])] = 
 	if (null input) then
-		total!counter
-	else size![(cdr input) (+ counter 1) total]
-
+		res!list	
+	else 
+		reduceHandler![reduce (cdr input) (cons (reduce (car input)) list) res]
 
 {-
 mapReduce driver method
 -}
-def mapReduce [#X #Y map:MapFunction reduce:ReduceFunction xCompare:/[[X (List Y)] [X (List Y)] /Cmp] e:/[X X /Bool] f1:/[X /String] f2:/[Y /String] input:(List [X Y])] = 
+def mapReduce [#X #Y map:MapFunction reduce:ReduceFunction compare:/[[X (List Y)] [X (List Y)] /Cmp] e:/[X X /Bool] f1:/[X /String] f2:/[Y /String] input:(List [X Y])] = 
 	if (null input) then 
 		print!"NULL list!"
-	else (new d:^[] 
-			  new reschannel:^[X Y]
-		  new finalresult:^(List [X Y])
-		  new length:^Int
-		  val l = (cons > nil)
-			  (size![input 0 (rchan length)] | length?len = 
-			( print!"Starting..."
-					| printi!len 
-			| iterateAndSummon![input map (rchan reschannel) (rchan d)] 
-			| resultsAggregator![0 len reschannel l (rchan finalresult)] 
-						| finalresult?r = (printupGrouped![(reduceAndCombine r xCompare e) f1 f2 (rchan d)] | d?_ = print!"done")
-				)))
+	else (new d1:^[] 
+		new reschannel:^[X Y]
+		new finalresult:^(List [X Y])
+		val length = (size input)
+		val l = (cons > nil)
+		(print!(+$ "Starting: len(input) = " (int.toString length)) 
+		| iterateAndSummon![input map (rchan reschannel) (rchan d1)] 
+		| resultsAggregator![0 len reschannel l (rchan finalresult)] 
+		| finalresult?r = 
+			(new reduced_list:^(List [X Y])
+			 new d3:^[]
+			 val grouped_list = (reduceAndCombine r compare e)
+                               	(printGroupedList![grouped_list f1 f2 (rchan d1)] 
+                               	| d1?_ = print!"Grouping completed..." 
+                               	| reduceHandler![reduce grouped_list (rchan reduced_list)]
+				| reduced_list?r2 = (printList![r2 f1 f2 (rchan d3)] | d3?_ = print!"Reduce completed") 
+					))))
 
 
-def cmp_2d[[v1:Int l1:(List Int)] [v2:Int l2:(List Int)] o:/Cmp] =
-		o!(int.cmp v1 v2)
 
-run mapReduce![map reduce cmp_2d == int.toString listToString (cons > [1 2] [2 4] [6 8] nil)]
+def cmp_2d[[v1:Int l1:(List Int)] [v2:Int l2:(List Int)] o:/Cmp] = o!(int.cmp v1 v2)
 
-val pre_grp_lst = (cons > [2 1] [1 5] [2 3] [3 4] [1 2] nil)
-val post_grp_lst = (groupList pre_grp_lst nil ==)
-
-val final_lst = (reduceAndCombine pre_grp_lst cmp_2d ==)
-
-run print!(listToString post_grp_lst "" xyListToString)
-run print!(listToString final_lst "" xyListToString)
+run mapReduce![map reduce cmp_2d == int.toString int.toString (cons > [1 2] [2 4] [6 8] [6 7] [1 3] nil)]

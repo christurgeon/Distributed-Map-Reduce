@@ -1,9 +1,20 @@
-type Response = /[Int /Int]
+def append [#X element:X list:(List X) result:/(List X)] = 
+	result!(cons element list)
 
-def call [l:Int f:Response] = printi!(f l)
+def append2(#X list:(List X) element:X):(List X) = (cons element list)
 
-def add (x:Int):Int = (+ x 2)
 
-run call![1 add]
+def printl [list:(List Int)] = 
+	if (null list) then print!""
+	else (printi!(car list) | printl![(cdr list)])
+
+run (
+	val a = 5
+	val l = (cons > 3 2 5 6 3 nil)
+	new c:^(List Int)
+	(append![a l (rchan c)] | c?_ = printl![(append2 l a)])
+)
+
+
 
 
