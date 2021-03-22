@@ -1,6 +1,1 @@
-def call [[a:Int b:Int] l:Int] = if (<= a (- b 1)) then printi!a else printi!b 
-
-run call![[5 6] 7]
-
-
-
+run print!(list)
