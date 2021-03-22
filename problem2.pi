@@ -1,0 +1,56 @@
+import "Std/List"
+import "Std/Float"
+
+{-
+
+THE COMPARE FUNCTION SHOULD DUMP EVERYTHING INTO THE SAME BUCKET
+
+def compare(k1 k2) = true
+
+-}
+
+
+type K2 = Int 
+type V2 = (List Int)
+type K3 = String
+type V3 = String
+
+{- current< ["Characters" 0] ["Characters per Word" 0] ["Words" 0] ["Words per Line" 0] > -}
+
+def helper[l:(List V2) size:Int charcount:Int wordcount:Int out:/(List [K3 V3])] = 
+	if (null l) then
+	(val words_per_line = (float.div (float.fromInt wordcount) (float.fromInt size))
+ 	 val chars_per_word = (float.div (float.fromInt charcount) (float.fromInt wordcount))	
+	 out!(cons > 
+			["Characters" (int.toString charcount)] 
+			["Characters per Word" (float.toString chars_per_word)] 
+			["Words" (int.toString wordcount)] 
+			["Words per Line" (float.toString words_per_line)] 
+			nil))
+	else 
+		(val new_size = (+ size 1)
+		 val sublist = (car l)
+                 val new_charcount = (+ charcount (car sublist))
+		 val new_wordcount = (+ wordcount (car (cdr sublist)))
+		 helper![(cdr l) new_size new_charcount new_wordcount out]
+		)
+	
+
+def reduce[[k:K2 v:(List V2)] out:/(List [K3 V3])] = 
+	(new c:^(List [K3 V3])
+	(helper![v 0 0 0 (rchan c)] | c?result = out!result))
+	
+
+def tryPrint[[a:K3 b:V3]] = print!(+$ > a " " b)
+def printlst[l:(List [K3 V3]) res:/[]] = 
+	if (null l) then 
+		res![]
+	else (tryPrint![(car l)] | printlst![(cdr l) res])
+ 
+
+run (
+	val list = (cons > [1 (cons > (cons > 10 30 nil) (cons > 70 80 nil) (cons > 1 2 nil) nil)] nil)
+	new c:^(List [K3 V3])
+	new d:^[]
+	(reduce![(car list) (rchan c)] | c?out = printlst![out (rchan d)])
+)
