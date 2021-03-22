@@ -1,0 +1,215 @@
+import "Std/List"
+
+type K1 = Int
+type V1 = String 
+type K2 = String
+type V2 = Int
+type K3 = String 
+type V3 = (List Int)
+
+type MapFunction = /[K1 V1 /(List [K2 V2])] 
+type ReduceFunction = /[[K2 (List V2)] /[K3 V3]] 
+type ResultsFeeder = /[(List [K1 V1])]
+
+
+{- ========================================================  HELPERS -}
+def printl[x:(List Int) s:/[]] = 
+	if (null x) then s![]
+	else (printi!(car x) | printl![(cdr x) s])
+
+def printup[[x:K1 b:V1] f1:/[K1 /String] f2:/[V1 /String]] = print!(+$ (+$ (f1 x) " ") (f2 b)) 
+
+def printList [list:(List [K1 V1]) f1:/[K1 /String] f2:/[V1 /String] res:/[]] = 
+	if (null list) then 
+		res![]
+	else (printup![(car list) f1 f2] | printList![(cdr list) f1 f2 res])
+
+
+def listToString[l:(List V2) s:String p:/[V2 /String] o:/String] =
+	if (null l) then
+		o!s
+	else if (==$ s "") then
+		o!(listToString (cdr l) (p (car l)) p)
+	else
+		o!(listToString (cdr l) (+$ (+$ s " ") (p (car l))) p)
+
+def xyListToString[[x:K2 temp:(List V2)] f1:/[K2 /String] f2:/[V2 /String] o:/String] =
+	o!(+$ < (f1 x) " [" (listToString temp "" f2) "]")
+
+def printupGrouped[[x:K2 b:(List V2)] f1:/[K2 /String] f2:/[V2 /String]] = print!(xyListToString [x b] f1 f2) 
+
+def printGroupedList [list:(List [K2 (List V2)]) f1:/[K2 /String] f2:/[V2 /String] res:/[]] = 
+	if (null list) then res![]
+	else (printupGrouped![(car list) f1 f2] | printGroupedList![(cdr list) f1 f2 res])
+
+{- =========================================================================================-}
+
+
+
+
+{- 
+Takes in a tuple of key,value, a map function to apply, and a channel to send result
+-}
+def worker[[a:K1 b:V1] map:MapFunction done:/(List [K2 V2])] = done!(map a b)
+
+
+def groupMatch[curKey:K2 [testKey:K2 l:(List V2)] e:/[K2 K2 /Bool] b:/Bool] = 
+	b!(e curKey testKey)
+def groupAppend[[key:K2 lst:(List V2)] value:V2 out:/[K2 (List V2)]] = 
+	out![key (cons > value lst)]
+def groupInsert[[key:K2 value:V2] curList:(List [K2 (List V2)]) e:/[K2 K2 /Bool] outList:/(List [K2 (List V2)])] =
+	if (null curList) then
+		outList!(cons > [key (cons > value nil)] nil)
+	else if (groupMatch key (car curList) e) then
+		outList!(cons > (groupAppend (car curList) value) (cdr curList))
+	else
+		outList!(cons > (car curList) (groupInsert [key value] (cdr curList) e))
+
+def groupList[inList:(List [K2 V2]) curList:(List [K2 (List V2)]) e:/[K2 K2 /Bool] outList:/(List [K2 (List V2)])] =
+	if (null inList) then
+		outList!curList
+	else
+		outList!(groupList (cdr inList) (groupInsert (car inList) curList e) e)
+
+def reduceAndCombine[inList:(List [K2 V2]) xCompare:/[[K2 (List V2)] [K2 (List V2)] /Cmp] e:/[K2 K2 /Bool] outList:/(List [K2 (List V2)])] =
+	outList!(list.sort (groupList inList nil e) xCompare true)
+
+
+{-
+Aggregator function to reas in `size` number of pairs from the `results` channel
+The pairs come from worker function sending its result after applying map
+-}
+def resultsAggregator [current:Int len:Int results:^(List [K2 V2]) list:(List [K2 V2]) res:/(List [K2 V2])] = 
+	if (<= current (- len 1)) then 
+		(print!"result arrived" | 
+		results?r = resultsAggregator![(+ current 1) len results (cons (car r) list) res]) {- we don't actually want the (car r) but we'll take it for now -}
+	else 
+		res!list
+
+
+{- 
+Iterates through the input and summons workers to compute work unit.
+iIt sends Sig when complete
+-}
+def iterateAndSummon [input:(List [K1 V1]) map:MapFunction reschannel:/(List [K2 V2]) done:/[]] =
+	if (null input) then 
+		done![]
+	else (worker![(car input) map reschannel]
+		 | iterateAndSummon![(cdr input) map reschannel done])
+ 
+
+{-
+IN reduce reduce function specified by the user
+IN input list that is already sorted and grouped
+IN currlst running list of reduced groups
+OUT res channel to send the list through when reduce is applied on all memebers of input
+-}
+def reduceHandler [reduce:ReduceFunction input:(List [K2 (List V2)]) currlst:(List [K3 V3]) res:/(List [K3 V3])] = 
+	if (null input) then 
+		res!currlst
+	else 
+		reduceHandler![reduce (cdr input) (cons (reduce (car input)) currlst) res]
+
+
+{-
+IN map map function
+IN reduce reduce function
+IN compare> compare function
+IN e custom comparator to help sort keys
+IN f1 print helper
+IN f2 print helper
+IN input input specified by user
+-}
+def mapReduce [map:MapFunction reduce:ReduceFunction compare:/[[K2 (List V2)] [K2 (List V2)] /Cmp] e:/[K2 K2 /Bool] f1:/[K2 /String] f2:/[V2 /String] input:(List [K1 V1])] = 
+	if (null input) then 
+		print!"NULL list!"
+	else (new d1:^[] 
+		new reschannel:^(List [K2 V2])
+		new finalresult:^(List [K2 V2])
+		val len = (list.size input)
+		(print!(+$ "Starting: len(input) = " (int.toString len)) 
+			| iterateAndSummon![input map (rchan reschannel) (rchan d1)] 
+			| resultsAggregator![0 len reschannel (cons > nil) (rchan finalresult)] 
+			| finalresult?r = 
+				(new d2:^[]
+				 new reduced_list:^(List [K3 V3])
+				 val grouped_list = (reduceAndCombine r compare e)
+					(printGroupedList![grouped_list f1 f2 (rchan d1)]
+					| d1?_ = print!"Grouping complete..."
+					| reduceHandler![reduce grouped_list (cons > nil) (rchan reduced_list)]
+					| reduced_list?r2 = print!"Reduce complete..." 
+						))))
+
+
+{-
+def compare[[v1:K2 l1:(List V2)] [v2:K2 l2:(List V2)] o:/Cmp] = o!(int.cmp v1 v2)
+-}
+
+val p1_GLOBALSEARCHSTRING = "is"
+
+def p1_remove[x:String current:Int size:Int builder:String res:/String] = 
+	if (== current size) then
+		res!builder
+	else (
+		val c = (string.nth x current)
+		if (|| < (== c ',') (== c '.') (== c '!') (== c '?') (== c ';')  (== c ':') (== c '"') (== c '\'')) then 
+			res!(p1_remove x (+ current 1) size builder)
+		else 
+			res!(p1_remove x (+ current 1) size (+$ builder (char.toString c)))
+	)
+
+
+def p1_clean_strings[i:(List String) l:(List String) o:/(List String)] =
+	if (null i) then
+		o!l
+	else
+		o!(cons > (p1_remove (car i) 0 (string.size (car i)) "") (p1_clean_strings (cdr i) l))
+
+def p1_filter_strings [inLst:(List String) line:Int o:/(List [String Int])] =
+	if (null inLst) then
+		o!nil
+	else if (string.in p1_GLOBALSEARCHSTRING (car inLst)) then
+		o!(cons > [(car inLst) line] (p1_filter_strings (cdr inLst) line))
+	else
+		o!(p1_filter_strings (cdr inLst) line)
+
+def p1_map [i:Int s:String o:/(List [String Int])] =
+	o!(p1_filter_strings (p1_clean_strings (string.split " " s) nil) i)
+
+def p1_compare[[ls:String li:(List Int)] [rs:String ri:(List Int)] o:/Cmp] = 
+	o!(int.cmp (string.size ls) (string.size rs))
+
+def p1_reduce [i:[String (List Int)] o:/[String (List Int)]] =
+	o!i
+
+{-
+
+I CCOMMENTED THIS OUT BECAUSE WE HAVE THESE TWO SAME ONES ABOVE ... 
+I THINK THOSE ABOVE ONES SHOULD WORK AS LONG AS TYPES ARE CORRECT 
+
+def s2s[l:String o:/String] = o!l
+
+def xyListToString[[x:String temp:(List Int)] o:/String] =
+	o!(+$ < x " (" (listToString temp "" s2s) ")")
+-}
+
+val input = (cons >
+     [1 "WHEN I consider how my light is spent "]
+     [2 "  E're half my days, in this dark world and wide,"]
+     [3 "  And that one Talent which is death to hide,"]
+     [4 "  Lodg'd with me useless, though my Soul more bent"]
+     [5 "To serve therewith my Maker, and present"]
+     [6 "  My True account, least he returning chide,"]
+     [7 "  Doth God exact day-labour, light deny'd,"]
+     [8 "  I fondly ask; But patience to prevent"]
+     [9 "That murmur, soon replies, God doth not need"]
+     [10 "  Either man's work or his own gifts, who best"]
+     [11 "  Bear his milde yoak, they serve him best, his State"]
+     [12 "Is Kingly. Thousands at his bidding speed"]
+     [13 "  And post o're Land and Ocean without rest:"]
+     [14 "  They also serve who only stand and waite."]
+     nil)
+
+
+run mapReduce![p1_map p1_reduce p1_compare ==$ string.toString int.toString input]
+
