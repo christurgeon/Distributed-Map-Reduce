@@ -120,7 +120,7 @@ IN f1 print helper
 IN f2 print helper
 IN input input specified by user
 -}
-def mapReduce [map:MapFunction reduce:ReduceFunction compare:/[[K1 (List V1)] [K1 (List V1)] /Cmp] e:/[K2 K2 /Bool] f1:/[K2 /String] f2:/[V2 /String] input:(List [K1 V1])] = 
+def mapReduce [map:MapFunction reduce:ReduceFunction compare:/[[K2 (List V2)] [K2 (List V2)] /Cmp] e:/[K2 K2 /Bool] f1:/[K2 /String] f2:/[V2 /String] input:(List [K1 V1])] = 
 	if (null input) then 
 		print!"NULL list!"
 	else (new d1:^[] 
@@ -141,8 +141,9 @@ def mapReduce [map:MapFunction reduce:ReduceFunction compare:/[[K1 (List V1)] [K
 						))))
 
 
-
+{-
 def compare[[v1:K2 l1:(List V2)] [v2:K2 l2:(List V2)] o:/Cmp] = o!(int.cmp v1 v2)
+-}
 
 val p1_GLOBALSEARCHSTRING = "is"
 
@@ -172,7 +173,7 @@ def p1_filter_strings [inLst:(List String) line:Int o:/(List [String Int])] =
 	else
 		o!(p1_filter_strings (cdr inLst) line)
 
-def p1_map [[i:Int s:String] o:/(List [String Int])] =
+def p1_map [i:Int s:String o:/(List [String Int])] =
 	o!(p1_filter_strings (p1_clean_strings (string.split " " s) nil) i)
 
 def p1_compare[[ls:String li:(List Int)] [rs:String ri:(List Int)] o:/Cmp] = 
@@ -181,10 +182,16 @@ def p1_compare[[ls:String li:(List Int)] [rs:String ri:(List Int)] o:/Cmp] =
 def p1_reduce [i:[String (List Int)] o:/[String (List Int)]] =
 	o!i
 
+{-
+
+I CCOMMENTED THIS OUT BECAUSE WE HAVE THESE TWO SAME ONES ABOVE ... 
+I THINK THOSE ABOVE ONES SHOULD WORK AS LONG AS TYPES ARE CORRECT 
+
 def s2s[l:String o:/String] = o!l
 
 def xyListToString[[x:String temp:(List Int)] o:/String] =
 	o!(+$ < x " (" (listToString temp "" s2s) ")")
+-}
 
 val input = (cons >
      [1 "WHEN I consider how my light is spent "]
@@ -203,7 +210,6 @@ val input = (cons >
      [14 "  They also serve who only stand and waite."]
      nil)
 
-{-
-run mapReduce![p1_map p1_reduce p1_compare == int.toString int.toString (cons > [1 2] [2 4] [6 8] [6 7] [1 3] nil)]
--}
-run print!(string)
+
+run mapReduce![p1_map p1_reduce p1_compare == string.toString int.toString input]
+
