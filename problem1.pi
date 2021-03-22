@@ -44,10 +44,7 @@ def p1_map [[i:Int s:String] o:/(List [String Int])] =
 def p1_compare[[ls:String li:(List Int)] [rs:String ri:(List Int)] o:/Cmp] = 
 	o!(int.cmp (string.size ls) (string.size rs))
 
-def p1_compare[[ls:String li:(List Int)] [rs:String ri:(List Int)] o:/Cmp] = 
-	o!(int.cmp (string.size ls) (string.size rs))
-
-def p1_reduce [i:(List [String (List Int)]) o:/(List [String (List Int)])] =
+def p1_reduce [i:[String (List Int)] o:/[String (List Int)]] =
 	o!i
 
 val test_input = (cons > 
