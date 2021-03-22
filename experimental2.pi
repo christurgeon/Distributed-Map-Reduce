@@ -211,5 +211,5 @@ val input = (cons >
      nil)
 
 
-run mapReduce![p1_map p1_reduce p1_compare == string.toString int.toString input]
+run mapReduce![p1_map p1_reduce p1_compare ==$ string.toString int.toString input]
 
