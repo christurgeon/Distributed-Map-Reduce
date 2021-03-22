@@ -105,3 +105,7 @@ val post_grp_lst = (groupList pre_grp_lst nil ==)
 run print!"working"
 run print!(listToString post_grp_lst "" xyListToString)
 
+def isEqual[#X l:X r:X xcmp:/[X X /Cmp] o:/Bool] =
+	o!(cmp.eq (xcmp l r))
+
+run print!(bool.toString (isEqual "100!" "100" string.cmp))
