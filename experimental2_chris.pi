@@ -1,76 +1,30 @@
 import "Std/List"
 import "Std/Float"
 
-type K1 = Int
-type V1 = String 
-type K2 = String
-type V2 = Int
-type K3 = String 
-type V3 = (List Int)
+{- ===================================================================
+   ===================================================================
+   			    PROBLEM 2 
+-}
+
+type K1 = Int 
+type V1 = String
+type K2 = Int 
+type V2 = (List Int)
+type K3 = Int
+type V3 = (List [String String])
 
 type MapFunction = /[K1 V1 /(List [K2 V2])] 
 type ReduceFunction = /[[K2 (List V2)] /[K3 V3]] 
 type ResultsFeeder = /[(List [K1 V1])]
 
-{- ===================================================================
-   ===================================================================
-   			    PROBLEM 2 
-			    
-THE COMPARE FUNCTION SHOULD DUMP EVERYTHING INTO THE SAME BUCKET
-def compare(k1 k2) = true
--}
-
-type K2 = Int 
-type V2 = (List Int)
-type K3 = String
-type V3 = String
-
-{- current< ["Characters" 0] ["Characters per Word" 0] ["Words" 0] ["Words per Line" 0] > -}
-def helper[l:(List V2) size:Int charcount:Int wordcount:Int out:/(List [K3 V3])] = 
-	if (null l) then
-	(val words_per_line = (float.div (float.fromInt wordcount) (float.fromInt size))
- 	 val chars_per_word = (float.div (float.fromInt charcount) (float.fromInt wordcount))	
-	 out!(cons > 
-			["Characters" (int.toString charcount)] 
-			["Characters per Word" (float.toString chars_per_word)] 
-			["Words" (int.toString wordcount)] 
-			["Words per Line" (float.toString words_per_line)] 
-			nil))
-	else 
-		(val new_size = (+ size 1)
-		 val sublist = (car l)
-                 val new_charcount = (+ charcount (car sublist))
-		 val new_wordcount = (+ wordcount (car (cdr sublist)))
-		 helper![(cdr l) new_size new_charcount new_wordcount out]
-		)
-	
-
-def reduce[[k:K2 v:(List V2)] out:/(List [K3 V3])] = 
-	(new c:^(List [K3 V3])
-	(helper![v 0 0 0 (rchan c)] | c?result = out!result))
-	
-
-def tryPrint[[a:K3 b:V3]] = print!(+$ > a " " b)
-def printlst[l:(List [K3 V3]) res:/[]] = 
-	if (null l) then 
-		res![]
-	else (tryPrint![(car l)] | printlst![(cdr l) res])
- 
-{-
-run (
-	val list = (cons > [1 (cons > (cons > 10 30 nil) (cons > 70 80 nil) (cons > 1 2 nil) nil)] nil)
-	new c:^(List [K3 V3])
-	new d:^[]
-	(reduce![(car list) (rchan c)] | c?out = printlst![out (rchan d)])
-)
--}
 
 
 
 {- ========================================================  HELPERS -}
-def printl[x:(List Int) s:/[]] = 
-	if (null x) then s![]
-	else (printi!(car x) | printl![(cdr x) s])
+def intListToStringHelper[x:(List Int) curr:String s:/String] = 
+	if (null x) then s!curr
+	else intListToStringHelper![(cdr x) (+$ < curr " " (int.toString (car x))) s]
+def intListToString[x:(List Int) s:/String] = s!(intListToStringHelper x "")
 
 def printup[[x:K1 b:V1] f1:/[K1 /String] f2:/[V1 /String]] = print!(+$ (+$ (f1 x) " ") (f2 b)) 
 
@@ -97,6 +51,11 @@ def printGroupedList [list:(List [K2 (List V2)]) f1:/[K2 /String] f2:/[V2 /Strin
 	if (null list) then res![]
 	else (printupGrouped![(car list) f1 f2] | printGroupedList![(cdr list) f1 f2 res])
 
+
+def tryPrint[[a:String b:String]] = print!(+$ > "\"" a "\"" " " b)
+def printlst[[a:K3 b:V3] res:/[]] = 
+	if (null b) then res![]
+	else (tryPrint![(car b)] | printlst![[a (cdr b)] res])
 {- =========================================================================================-}
 
 
@@ -192,15 +151,38 @@ def mapReduce [map:MapFunction reduce:ReduceFunction compare:/[[K2 (List V2)] [K
 					(printGroupedList![grouped_list f1 f2 (rchan d1)]
 					| d1?_ = print!"Grouping complete..."
 					| reduceHandler![reduce grouped_list (cons > nil) (rchan reduced_list)]
-					| reduced_list?r2 = printlst![r2 (rchan d2)]
+					| reduced_list?r2 = ( printlst![(car r2) (rchan d2)] | print!"Reduce complete..." )
 						))))
 
 
-{-
-def compare[[v1:K2 l1:(List V2)] [v2:K2 l2:(List V2)] o:/Cmp] = o!(int.cmp v1 v2)
--}
 
-def p1_remove[x:String current:Int size:Int builder:String res:/String] = 
+
+{- current< ["Characters" 0] ["Characters per Word" 0] ["Words" 0] ["Words per Line" 0] > -}
+def helper[l:(List V2) size:Int charcount:Int wordcount:Int out:/[K3 V3]] = 
+	if (null l) then
+	(val words_per_line = (float.div (float.fromInt wordcount) (float.fromInt size))
+ 	 val chars_per_word = (float.div (float.fromInt charcount) (float.fromInt wordcount))	
+	 out![0 (cons > 
+			["Characters" (int.toString charcount)] 
+			["Characters per Word" (float.toString chars_per_word)] 
+			["Words" (int.toString wordcount)] 
+			["Words per Line" (float.toString words_per_line)] 
+			nil)])
+	else 
+		(val new_size = (+ size 1)
+		 val sublist = (car l)
+                 val new_charcount = (+ charcount (car (cdr sublist)))
+		 val new_wordcount = (+ wordcount (car sublist))
+		 helper![(cdr l) new_size new_charcount new_wordcount out]
+		)
+	
+
+def p2_reduce[[k:K2 v:(List V2)] out:/[K3 V3]] = 
+	(new c:^[K3 V3]
+	(helper![v 0 0 0 (rchan c)] | c?result = out!result))
+	
+
+def p1_remove[x:V1 current:Int size:Int builder:V1 res:/V1] = 
 	if (== current size) then
 		res!builder
 	else (
@@ -211,35 +193,33 @@ def p1_remove[x:String current:Int size:Int builder:String res:/String] =
 			res!(p1_remove x (+ current 1) size (+$ builder (char.toString c)))
 	)
 
+def p1_clean_strings[i:(List V1) l:(List V1) o:/(List V1)] =
+	if (null i) then 
+		o!l 
+	else 
+		( print!(car i)
+			| p1_clean_strings![(cdr i) (cons (p1_remove (car i) 0 (string.size (car i)) "") l) o]
+)
 
-def p1_clean_strings[i:(List String) l:(List String) o:/(List String)] =
-	if (null i) then
-		o!l
-	else
-		o!(cons > (p1_remove (car i) 0 (string.size (car i)) "") (p1_clean_strings (cdr i) l))
-
-def p1_filter_strings [inLst:(List String) line:Int o:/(List [String Int])] =
-	if (null inLst) then
-		o!nil
-	else if (string.in p1_GLOBALSEARCHSTRING (car inLst)) then
-		o!(cons > [(car inLst) line] (p1_filter_strings (cdr inLst) line))
-	else
-		o!(p1_filter_strings (cdr inLst) line)
-
-
-
-def map [linenum:K1 line:V1 out:/(List [K2 V2])] = 
-	out!(p2_aggregate_stats)
-
-def p1_map [i:Int s:String o:/(List [String Int])] =
-	o!(p1_filter_strings (p1_clean_strings (string.split " " s) nil) i)
-
-def p1_compare[[ls:String li:(List Int)] [rs:String ri:(List Int)] o:/Cmp] = 
-	o!(int.cmp (string.size ls) (string.size rs))
-
+def p2_stats [in:(List V1) x:K1 [numwords:K2 numchars:K2] o:/(List [K2 V2])] = 
+	if (null in) then 
+		o!(cons [x (cons > numwords numchars nil)] nil)
+	else 
+		p2_stats![(cdr in) x [(+ numwords 1) (+ numchars (string.size (car in)))] o]
+def p2_aggregate_stats [x:K1 line:V1 o:/(List [K2 V2])] =
+	o!(p2_stats (p1_clean_strings (string.split " " line) nil) x [0 0])
+def p2_map [linenum:K1 line:V1 o:/(List [K2 V2])] = 
+	o!(p2_aggregate_stats 0 line)	
+def p2_compare [[ls:Int li:(List (List Int))] [rs:Int ri:(List (List Int))] o:/Cmp] = 
+	o!(int.cmp ls rs)
 	
-
-run mapReduce![p1_map reduce p1_compare == int.toString int.toString input]
+val input = (cons >
+	[1 "hi th st"]
+	[2 "my nm is"]
+	[3 ";bruh ,hello"]
+	nil)
+ 
+run mapReduce![p2_map p2_reduce p2_compare == int.toString intListToString input]
 
 
 
