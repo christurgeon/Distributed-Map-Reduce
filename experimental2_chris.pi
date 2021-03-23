@@ -1,4 +1,5 @@
 import "Std/List"
+import "Std/Float"
 
 type K1 = Int
 type V1 = String 
@@ -10,6 +11,60 @@ type V3 = (List Int)
 type MapFunction = /[K1 V1 /(List [K2 V2])] 
 type ReduceFunction = /[[K2 (List V2)] /[K3 V3]] 
 type ResultsFeeder = /[(List [K1 V1])]
+
+{- ===================================================================
+   ===================================================================
+   			    PROBLEM 2 
+			    
+THE COMPARE FUNCTION SHOULD DUMP EVERYTHING INTO THE SAME BUCKET
+def compare(k1 k2) = true
+-}
+
+type K2 = Int 
+type V2 = (List Int)
+type K3 = String
+type V3 = String
+
+{- current< ["Characters" 0] ["Characters per Word" 0] ["Words" 0] ["Words per Line" 0] > -}
+def helper[l:(List V2) size:Int charcount:Int wordcount:Int out:/(List [K3 V3])] = 
+	if (null l) then
+	(val words_per_line = (float.div (float.fromInt wordcount) (float.fromInt size))
+ 	 val chars_per_word = (float.div (float.fromInt charcount) (float.fromInt wordcount))	
+	 out!(cons > 
+			["Characters" (int.toString charcount)] 
+			["Characters per Word" (float.toString chars_per_word)] 
+			["Words" (int.toString wordcount)] 
+			["Words per Line" (float.toString words_per_line)] 
+			nil))
+	else 
+		(val new_size = (+ size 1)
+		 val sublist = (car l)
+                 val new_charcount = (+ charcount (car sublist))
+		 val new_wordcount = (+ wordcount (car (cdr sublist)))
+		 helper![(cdr l) new_size new_charcount new_wordcount out]
+		)
+	
+
+def reduce[[k:K2 v:(List V2)] out:/(List [K3 V3])] = 
+	(new c:^(List [K3 V3])
+	(helper![v 0 0 0 (rchan c)] | c?result = out!result))
+	
+
+def tryPrint[[a:K3 b:V3]] = print!(+$ > a " " b)
+def printlst[l:(List [K3 V3]) res:/[]] = 
+	if (null l) then 
+		res![]
+	else (tryPrint![(car l)] | printlst![(cdr l) res])
+ 
+{-
+run (
+	val list = (cons > [1 (cons > (cons > 10 30 nil) (cons > 70 80 nil) (cons > 1 2 nil) nil)] nil)
+	new c:^(List [K3 V3])
+	new d:^[]
+	(reduce![(car list) (rchan c)] | c?out = printlst![out (rchan d)])
+)
+-}
+
 
 
 {- ========================================================  HELPERS -}
@@ -137,15 +192,13 @@ def mapReduce [map:MapFunction reduce:ReduceFunction compare:/[[K2 (List V2)] [K
 					(printGroupedList![grouped_list f1 f2 (rchan d1)]
 					| d1?_ = print!"Grouping complete..."
 					| reduceHandler![reduce grouped_list (cons > nil) (rchan reduced_list)]
-					| reduced_list?r2 = print!"Reduce complete..." 
+					| reduced_list?r2 = printlst![r2 (rchan d2)]
 						))))
 
 
 {-
 def compare[[v1:K2 l1:(List V2)] [v2:K2 l2:(List V2)] o:/Cmp] = o!(int.cmp v1 v2)
 -}
-
-val p1_GLOBALSEARCHSTRING = "is"
 
 def p1_remove[x:String current:Int size:Int builder:String res:/String] = 
 	if (== current size) then
@@ -173,43 +226,24 @@ def p1_filter_strings [inLst:(List String) line:Int o:/(List [String Int])] =
 	else
 		o!(p1_filter_strings (cdr inLst) line)
 
+
+
+def map [linenum:K1 line:V1 out:/(List [K2 V2])] = 
+	out!(p2_aggregate_stats)
+
 def p1_map [i:Int s:String o:/(List [String Int])] =
 	o!(p1_filter_strings (p1_clean_strings (string.split " " s) nil) i)
 
 def p1_compare[[ls:String li:(List Int)] [rs:String ri:(List Int)] o:/Cmp] = 
 	o!(int.cmp (string.size ls) (string.size rs))
 
-def p1_reduce [i:[String (List Int)] o:/[String (List Int)]] =
-	o!i
+	
 
-{-
-
-I CCOMMENTED THIS OUT BECAUSE WE HAVE THESE TWO SAME ONES ABOVE ... 
-I THINK THOSE ABOVE ONES SHOULD WORK AS LONG AS TYPES ARE CORRECT 
-
-def s2s[l:String o:/String] = o!l
-
-def xyListToString[[x:String temp:(List Int)] o:/String] =
-	o!(+$ < x " (" (listToString temp "" s2s) ")")
--}
-
-val input = (cons >
-     [1 "WHEN I consider how my light is spent "]
-     [2 "  E're half my days, in this dark world and wide,"]
-     [3 "  And that one Talent which is death to hide,"]
-     [4 "  Lodg'd with me useless, though my Soul more bent"]
-     [5 "To serve therewith my Maker, and present"]
-     [6 "  My True account, least he returning chide,"]
-     [7 "  Doth God exact day-labour, light deny'd,"]
-     [8 "  I fondly ask; But patience to prevent"]
-     [9 "That murmur, soon replies, God doth not need"]
-     [10 "  Either man's work or his own gifts, who best"]
-     [11 "  Bear his milde yoak, they serve him best, his State"]
-     [12 "Is Kingly. Thousands at his bidding speed"]
-     [13 "  And post o're Land and Ocean without rest:"]
-     [14 "  They also serve who only stand and waite."]
-     nil)
+run mapReduce![p1_map reduce p1_compare == int.toString int.toString input]
 
 
-run mapReduce![p1_map p1_reduce p1_compare ==$ string.toString int.toString input]
+
+
+
+
 
