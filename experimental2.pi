@@ -79,12 +79,18 @@ def reduceAndCombine[inList:(List [K2 V2]) xCompare:/[[K2 (List V2)] [K2 (List V
 Aggregator function to reas in `size` number of pairs from the `results` channel
 The pairs come from worker function sending its result after applying map
 -}
-def resultsAggregator [current:Int len:Int results:^(List [K2 V2]) list:(List [K2 V2]) res:/(List [K2 V2])] = 
+def resultsAggregator [current:Int len:Int results:^(List [K2 V2]) lst:(List [K2 V2]) res:/(List [K2 V2])] = 
 	if (<= current (- len 1)) then 
-		(print!"result arrived" | 
-		results?r = resultsAggregator![(+ current 1) len results (cons (car r) list) res]) {- we don't actually want the (car r) but we'll take it for now -}
-	else 
-		res!list
+		(print!"result arrived" | results?r =  
+			(val rsize = (list.size r)
+			if (== rsize 1) then
+				resultsAggregator![(+ current 1) len results (cons (car r) lst) res] 
+			else if (>= rsize 2) then
+				resultsAggregator![(+ current 1) len results (list.append r lst) res]
+			else  
+				resultsAggregator![(+ current 1) len results lst res]))
+	else
+		res!lst
 
 
 {- 
