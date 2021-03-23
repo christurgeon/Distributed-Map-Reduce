@@ -34,7 +34,7 @@ def listToString[l:(List V2) s:String p:/[V2 /String] o:/String] =
 		o!(listToString (cdr l) (+$ (+$ s " ") (p (car l))) p)
 
 def xyListToString[[x:K2 temp:(List V2)] f1:/[K2 /String] f2:/[V2 /String] o:/String] =
-	o!(+$ < (f1 x) " [" (listToString temp "" f2) "]")
+	o!(+$ < (f1 x) " (" (listToString temp "" f2) ")")
 
 def printupGrouped[[x:K2 b:(List V2)] f1:/[K2 /String] f2:/[V2 /String]] = print!(xyListToString [x b] f1 f2) 
 
@@ -188,12 +188,13 @@ def p1_compare[[ls:String li:(List Int)] [rs:String ri:(List Int)] o:/Cmp] =
 def p1_reduce [i:[String (List Int)] o:/[String (List Int)]] =
 	o!i
 
+
+def s2s[l:String o:/String] = o!l
+
 {-
 
 I CCOMMENTED THIS OUT BECAUSE WE HAVE THESE TWO SAME ONES ABOVE ... 
 I THINK THOSE ABOVE ONES SHOULD WORK AS LONG AS TYPES ARE CORRECT 
-
-def s2s[l:String o:/String] = o!l
 
 def xyListToString[[x:String temp:(List Int)] o:/String] =
 	o!(+$ < x " (" (listToString temp "" s2s) ")")
@@ -217,5 +218,5 @@ val input = (cons >
      nil)
 
 
-run mapReduce![p1_map p1_reduce p1_compare ==$ string.toString int.toString input]
+run mapReduce![p1_map p1_reduce p1_compare ==$ s2s int.toString input]
 
