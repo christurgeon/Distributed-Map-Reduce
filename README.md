@@ -1,5 +1,5 @@
 # DistributedMapReduce
-A distributed MapReduce implementation in the actor model using Pict
+A distributed MapReduce implementation built with the pi calculus using Pict
 
 # Authors
 Daniel Tabin [tabind] and Chris Turgeon [Turgec]
