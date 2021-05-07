@@ -1,7 +1,7 @@
 import "Std/List"
 import "Std/Float"
 
-{- PROBLEM 1 TYPES -}
+{- TYPES -}
 type K1 = Int
 type V1 = String 
 type K2 = String
@@ -9,16 +9,6 @@ type V2 = Int
 type K3 = String 
 type V3 = (List Int)
 
-
-{- PROBLEM 2 TYPES -}
-{-
-type K1 = Int 
-type V1 = String
-type K2 = Int 
-type V2 = (List Int)
-type K3 = Int
-type V3 = (List [String String])
--}
 
 type MapFunction = /[K1 V1 /(List [K2 V2])] 
 type ReduceFunction = /[[K2 (List V2)] /[K3 V3]] 
@@ -135,7 +125,7 @@ def reduceAndCombine[inList:(List [K2 V2]) xCompare:/[[K2 (List V2)] [K2 (List V
 
 
 {-=====================================================================================-}
-{-                                  PROBLEM 1                                          -}
+{-                              PROBLEM SPECIFIC CODE                                  -}
 {-=====================================================================================-}
 
 
@@ -189,72 +179,6 @@ def p1_reduce [i:[String (List Int)] o:/[String (List Int)]] =
 {- We are pretty confident string.ToString is bugged... so we wrote our own -}
 def s2s[l:String o:/String] = o!l
 
-
-{-=====================================================================================-}
-{-                                     PROBLEM 2                                       -}
-{-=====================================================================================-}
-
-{-
-{-
-    Printing helper functions to pretty print the result of problem 2
--}
-def tryPrint[[a:String b:String]] = print!(+$ > "\"" a "\"" " " b)
-def printlst[[a:K3 b:V3] res:/[]] = 
-	if (null b) then res![]
-	else (tryPrint![(car b)] | printlst![[a (cdr b)] res]) 
-
-
-{- current< ["Characters" 0] ["Characters per Word" 0] ["Words" 0] ["Words per Line" 0] > -}
-def p2_helper[l:(List V2) size:Int wordcharcount:Int wordcount:Int totalcharcount:Int out:/[K3 V3]] = 
-	if (null l) then
-	(val words_per_line = (float.div (float.fromInt wordcount) (float.fromInt size))
- 	 val chars_per_word = (float.div (float.fromInt wordcharcount) (float.fromInt wordcount))	
-	 out![0 (cons > 
-			["Characters" (int.toString (- totalcharcount 1))] 
-			["Characters per Word" (float.toString chars_per_word)] 
-			["Words" (int.toString wordcount)] 
-			["Words per Line" (float.toString words_per_line)] 
-			nil)])
-	else 
-		(val new_size = (+ size 1)
-		 val sublist = (car l)
-                 val new_wordcharcount = (+ wordcharcount (car (cdr sublist)))
-		 val new_wordcount = (+ wordcount (car sublist))
-		 val new_totalcharcount = (+ totalcharcount (car (cdr (cdr sublist))))
-		 p2_helper![(cdr l) new_size new_wordcharcount new_wordcount new_totalcharcount out]
-		)
-
-{- take in a list of string and clean them by removing junk chars -}
-def p2_clean_strings[i:(List V1) l:(List V1) o:/(List V1)] =
-	if (null i) then 
-		o!l 
-	else 
-		p2_clean_strings![(cdr i) (cons (remove (car i) 0 (string.size (car i)) "") l) o]	
-
-{- helps to aggregate the stats across all lines -}
-def p2_stats [in:(List V1) x:K1 [numwords:K2 numchars:K2 linelen:K2] o:/(List [K2 V2])] = 
-	if (null in) then 
-		o!(cons [x (cons > numwords numchars linelen nil)] nil)
-	else 
-		p2_stats![(cdr in) x [(+ numwords 1) (+ numchars (string.size (car in))) linelen] o]
-
-{- clean the strings and compute the stats -}
-def p2_aggregate_stats [x:K1 line:V1 o:/(List [K2 V2])] =
-	o!(p2_stats (p2_clean_strings (string.split " " line) nil) x [0 0 (string.size line)])
-
-{- compute char and word stats for the given line -}
-def p2_map [linenum:K1 line:V1 o:/(List [K2 V2])] = 
-	o!(p2_aggregate_stats 0 line)	
-
-{- compare based on line number -}
-def p2_compare [[ls:Int li:(List (List Int))] [rs:Int ri:(List (List Int))] o:/Cmp] = 
-	o!(int.cmp ls rs)	
-
-{- reduce takes in the char and word stats for the line and sends it to the aggregator -}
-def p2_reduce[[k:K2 v:(List V2)] out:/[K3 V3]] = 
-	(new c:^[K3 V3]
-	(p2_helper![v 0 0 0 0 (rchan c)] | c?result = out!result))
--}
 
 {-=====================================================================================-}
 {-                                  MAPREDUCE ENGINE                                   -}
@@ -387,8 +311,3 @@ val input = (cons >
 
 {- RUN PROBLEM 1 -} 
 run mapReduce![p1_map p1_reduce p1_compare ==$ s2s int.toString input]
-
-{- RUN PROBLEM 2 -}
-{-
-run mapReduce![p2_map p2_reduce p2_compare == int.toString intListToString input]
--}
