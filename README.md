@@ -5,9 +5,9 @@ A distributed MapReduce implementation built with using the Pi calculus within t
 Chris Turgeon and Daniel Tabin
 
 ## Runing Instructions
-Our program requires the types of the input, intermediate, and output keys and values to be specified.  In our solution, these are declared as K1 V1, K2 V2, and K2 V3.  
+Our program requires the types of the input, intermediate, and output keys and values to be specified.  In our solution, these are declared as K1 V1, K2 V2, and K3 V3.  These types are specified to statically check that correct types are used within the map, reduce, and compare functions.  
 
-To run problem 1, simply run mapreduce_prob1.pi, and to run problem 2, simply run mapreduce_prob2.pi.  The only differences between these files is the different map, reduce, and compare functions (as well as their helpers), and the different types for K1-3 and V1-3
+To run problem 1, simply run problem1.pi, and to run problem 2, simply run problem2.pi.  The only differences between these files is the different map, reduce, and compare functions (as well as their helpers), and the different types for K1-3 and V1-3
 
 # Running Yourself
 To run your own map, reduce, and compare on our engine, simply replace the map, reduce and compare functions in the file, as well as the types, to be geared to your own solution.
