@@ -1,17 +1,8 @@
 import "Std/List"
 import "Std/Float"
 
-{- PROBLEM 1 TYPES -}
-{-
-type K1 = Int
-type V1 = String 
-type K2 = String
-type V2 = Int
-type K3 = String 
-type V3 = (List Int)
--}
 
-{- PROBLEM 2 TYPES -}
+{- TYPES -}
 type K1 = Int 
 type V1 = String
 type K2 = Int 
@@ -133,62 +124,6 @@ def groupList[inList:(List [K2 V2]) curList:(List [K2 (List V2)]) e:/[K2 K2 /Boo
 def reduceAndCombine[inList:(List [K2 V2]) xCompare:/[[K2 (List V2)] [K2 (List V2)] /Cmp] e:/[K2 K2 /Bool] outList:/(List [K2 (List V2)])] =
 	outList!(list.sort (groupList inList nil e) xCompare true)
 
-
-{-=====================================================================================-}
-{-                                  PROBLEM 1                                          -}
-{-=====================================================================================-}
-
-{-
-{- Global variable that tells reduce what it is looking for -}
-val p1_GLOBALSEARCHSTRING = "is"
-
-{-
-	for every string in a list: split string on spaces and remove punctuation
--}
-def p1_clean_strings[i:(List String) l:(List String) o:/(List String)] =
-	if (null i) then
-		o!l
-	else
-		o!(cons > (remove (car i) 0 (string.size (car i)) "") (p1_clean_strings (cdr i) l))
-
-{-
-	given a list of strings and a line number, return a list of tupples
-	of the from [string, line number], that only includes strings that contain
-	the search string
--}
-def p1_filter_strings [inLst:(List String) line:Int o:/(List [String Int])] =
-	{- if we are at the end of the list return a list bottom (nil) -}
-	if (null inLst) then
-		o!nil
-
-	{- if the string contains our target, add it to the output and continue through input list -}
-	else if (string.in p1_GLOBALSEARCHSTRING (car inLst)) then
-		o!(cons > [(car inLst) line] (p1_filter_strings (cdr inLst) line))
-
-	{- otherwise just continue through input list -}
-	else
-		o!(p1_filter_strings (cdr inLst) line)
-
-{-
-	master map function for problem 1
-	given a list of [Int String] tupple made of a line number and a line
-	return a list of tupples of Strings that contain the search string as keys
-	and lines they appear on as tupples
--}
-def p1_map [i:Int s:String o:/(List [String Int])] =
-	o!(p1_filter_strings (p1_clean_strings (string.split " " s) nil) i)
-
-{- compare strings by size for sorting -}
-def p1_compare[[ls:String li:(List Int)] [rs:String ri:(List Int)] o:/Cmp] = 
-	o!(int.cmp (string.size ls) (string.size rs))
-
-{- reduce is just output channel identity bc map does all the work in this problem :) -}
-def p1_reduce [i:[String (List Int)] o:/[String (List Int)]] =
-	o!i
-
-{- We are pretty confident string.ToString is bugged... so we wrote our own -}
-def s2s[l:String o:/String] = o!l
--}
 
 {-=====================================================================================-}
 {-                                     PROBLEM 2                                       -}
@@ -385,11 +320,5 @@ val input = (cons >
      nil)
 
 
-{- RUN PROBLEM 1 -} 
-{-
-run mapReduce![p1_map p1_reduce p1_compare ==$ s2s int.toString input]
--}
-
 {- RUN PROBLEM 2 -}
 run mapReduce![p2_map p2_reduce p2_compare == int.toString intListToString input]
-
